@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WhoWas — Questions biographiques</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <main>
+    <header>
+      <span class="badge">Wikidata · Version 1</span>
+      <h1>Une question sur une personnalité ?</h1>
+      <p>Sélectionne une personne, pose une question simple et obtiens une réponse accompagnée de sa donnée source.</p>
+    </header>
+
+    <section class="panel">
+      <label for="person">Personnalité</label>
+      <select id="person"><option>Chargement…</option></select>
+
+      <label for="question">Question</label>
+      <input id="question" value="Où est née cette personne ?" maxlength="300">
+
+      <div class="examples">
+        <button data-question="Quand est née cette personne ?">Naissance</button>
+        <button data-question="Où est née cette personne ?">Lieu</button>
+        <button data-question="Quelle était sa profession ?">Profession</button>
+        <button data-question="Quelles distinctions a-t-elle reçues ?">Distinctions</button>
+      </div>
+
+      <button id="ask" class="primary">Obtenir la réponse</button>
+    </section>
+
+    <section id="result" class="result hidden" aria-live="polite"></section>
+  </main>
+  <script src="/static/app.js"></script>
+</body>
+</html>
+
