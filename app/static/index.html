@@ -3,34 +3,60 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>WhoWas — Questions biographiques</title>
+  <title>WhoWas — Explore les personnalités</title>
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-  <main>
-    <header>
-      <span class="badge">Wikidata + Wikipédia · Version 4</span>
-      <h1>Une question sur une personnalité ?</h1>
-      <p>Pose une question, calcule un âge, compare deux personnes ou continue avec « il » et « elle ». Chaque réponse reste traçable jusqu'à sa source.</p>
-    </header>
-
-    <section class="panel">
-      <label for="question">Question</label>
-      <input id="question" value="Où est née Marie Curie ?" maxlength="300">
-
-      <div class="examples">
-        <button data-question="Quel âge a Margot Robbie ?">Âge</button>
-        <button data-question="Qui est le plus âgé entre Messi et Ronaldo ?">Comparer</button>
-        <button data-question="Combien de temps Marie Curie a-t-elle vécu ?">Durée de vie</button>
-        <button data-question="Quelle est la couleur des yeux de David Bowie ?">Question libre</button>
-      </div>
-
-      <button id="ask" class="primary">Obtenir la réponse</button>
-    </section>
-
-    <section id="result" class="result hidden" aria-live="polite"></section>
-    <section id="history" class="history" aria-label="Historique des questions"></section>
-  </main>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="#"><span class="brand-mark">W</span><span>WhoWas</span></a>
+      <nav aria-label="Navigation principale">
+        <button class="nav-item active" data-view="chat"><span>✦</span> Discussion</button>
+        <button class="nav-item" data-view="search"><span>⌕</span> Rechercher</button>
+        <button class="nav-item" data-view="game"><span>?</span> Qui est-ce ?</button>
+        <button class="nav-item" data-view="history"><span>↺</span> Historique</button>
+      </nav>
+      <div class="sidebar-foot"><span class="status-dot"></span> Wikidata + Wikipédia</div>
+    </aside>
+    <main>
+      <section id="chat-view" class="view active">
+        <header class="page-header">
+          <span class="eyebrow">Assistant biographique</span>
+          <h1>De qui veux-tu parler ?</h1>
+          <p>Pose tes questions naturellement et enchaîne avec « il », « elle » ou « cette personne ».</p>
+        </header>
+        <div id="conversation" class="conversation" aria-live="polite">
+          <article class="message assistant-message"><div class="avatar">W</div><div class="bubble">Salut ! Donne-moi le nom d’une personnalité et pose ta première question.</div></article>
+        </div>
+        <div class="composer-wrap">
+          <div class="quick-prompts">
+            <button data-question="Quel âge a Billie Eilish ?">Quel âge ?</button>
+            <button data-question="Qui est Marie Curie ?">Présentation</button>
+            <button data-question="Compare Messi et Ronaldo">Comparer</button>
+          </div>
+          <div class="composer">
+            <textarea id="question" rows="1" maxlength="300" placeholder="Pose une question sur une personnalité…"></textarea>
+            <button id="ask" class="send" aria-label="Envoyer">➜</button>
+          </div>
+          <small>Entrée pour envoyer · Maj + Entrée pour une nouvelle ligne</small>
+        </div>
+      </section>
+      <section id="search-view" class="view">
+        <header class="page-header compact"><span class="eyebrow">Annuaire mondial</span><h1>Rechercher une personnalité</h1><p>Trouve la bonne personne avant de commencer une discussion.</p></header>
+        <div class="search-box"><span>⌕</span><input id="people-search" placeholder="Ex. Marie Curie, Billie Eilish…" autocomplete="off"></div>
+        <div id="search-results" class="people-grid empty-state">Commence à écrire un nom.</div>
+      </section>
+      <section id="game-view" class="view">
+        <header class="page-header compact"><span class="eyebrow">Mode devinette</span><h1>Pense à une personnalité</h1><p>Réponds honnêtement : WhoWas essaiera de découvrir à qui tu penses.</p></header>
+        <div class="game-card"><div class="orb">?</div><div id="game-content"><h2>Prêt à jouer ?</h2><p>Choisis mentalement une personnalité connue, mais ne me donne pas son nom.</p><button id="game-start" class="primary">Commencer la partie</button></div></div>
+      </section>
+      <section id="history-view" class="view">
+        <header class="page-header compact"><span class="eyebrow">Mémoire locale</span><h1>Tes conversations</h1><p>Retrouve les questions posées depuis ce navigateur.</p></header>
+        <div class="history-toolbar"><span id="history-count">0 question</span><button id="clear-history" class="danger-ghost">Tout effacer</button></div>
+        <div id="history-list" class="history-list"></div>
+      </section>
+    </main>
+  </div>
   <script src="/static/app.js"></script>
 </body>
 </html>

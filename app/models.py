@@ -102,3 +102,8 @@ class AnswerResponse(BaseModel):
 
 class ErrorResponse(BaseModel):
     detail: str
+
+
+class AkinatorAnswerRequest(BaseModel):
+    session_id: str = Field(min_length=36, max_length=36)
+    answer: str = Field(pattern=r"^(yes|no|unknown)$")

@@ -9,14 +9,16 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 
+from app.akinator import AkinatorEngine
 from app.intents import RULES
-from app.models import AnswerResponse, QuestionRequest
+from app.models import AkinatorAnswerRequest, AnswerResponse, QuestionRequest
 from app.observability import metrics
 from app.rate_limit import SlidingWindowRateLimiter
 from app.service import AmbiguousPersonError, answer_question
 from app.wikidata import UpstreamUnavailableError, WikidataClient
 
 rate_limiter = SlidingWindowRateLimiter(limit=30, window_seconds=60)
+akinator = AkinatorEngine()
 logger = logging.getLogger("whowas")
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 
@@ -31,7 +33,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="WhoWas API",
     description="Moteur explicable de questions biographiques fondé sur Wikidata et Wikipédia.",
-    version="4.0.0",
+    version="4.1.0",
     lifespan=lifespan,
 )
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
@@ -116,6 +118,21 @@ async def list_intents() -> list[dict[str, object]]:
         }
         for rule in RULES
     ]
+
+
+@app.post("/akinator/start")
+async def start_akinator() -> dict[str, object]:
+    return akinator.start()
+
+
+@app.post("/akinator/answer")
+async def answer_akinator(payload: AkinatorAnswerRequest) -> dict[str, object]:
+    try:
+        return akinator.answer(payload.session_id, payload.answer)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
 @app.post("/answer", response_model=AnswerResponse)

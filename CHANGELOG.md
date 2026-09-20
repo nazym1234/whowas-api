@@ -1,5 +1,12 @@
 # Changelog
 
+## 4.1.0
+
+- Nouvelle interface applicative avec navigation latérale et conversation continue.
+- Ajout d'un annuaire de recherche de personnalités et d'un historique détaillé.
+- Ajout du mode « Qui est-ce ? » avec sessions, questions et classement des réponses.
+- Interface mobile adaptée et nouveaux tests du moteur de devinette.
+
 ## 4.0.0
 
 - moteur d'actions : recherche, comptage, résumé, âge, durée, comparaison et vérification ;

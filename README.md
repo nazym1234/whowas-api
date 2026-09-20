@@ -6,6 +6,11 @@ calcul ou une comparaison, puis renvoie une réponse sourcée.
 
 ## Fonctionnalités V4
 
+- interface à quatre espaces : discussion, recherche, jeu et historique ;
+- conversation continue avec conservation de la personnalité courante ;
+- recherche de personnalités et sélection directe depuis Wikidata ;
+- mode « Qui est-ce ? » inspiré d'Akinator avec moteur de déduction côté API ;
+- historique local des 50 dernières questions avec possibilité de les rejouer ;
 - questions libres et plus de 25 familles de propriétés biographiques ;
 - actions `lookup`, `count`, `summary`, `age`, `duration`, `compare` et `verify` ;
 - âge et durée de vie calculés à partir de dates structurées ;
