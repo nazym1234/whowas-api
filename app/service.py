@@ -417,7 +417,26 @@ async def answer_question(
         property_query = extract_property_query(question, searched_name or person.name)
         properties = await client.search_properties(property_query)
         if not properties:
-            raise ValueError(f"La propriété « {property_query} » n'a pas été trouvée.")
+            source_url = f"https://www.wikidata.org/wiki/{person.qid}"
+            return AnswerResponse(
+                person=person,
+                question=question,
+                intent=Intent.GENERIC,
+                answer=(
+                    f"Je n'ai pas trouvé cette information pour {person.name}. "
+                    "Vous pouvez consulter directement sa fiche Wikidata."
+                ),
+                action=Action.LOOKUP,
+                evidence=Evidence(
+                    property_id="UNKNOWN",
+                    property_label=property_query,
+                    values=[],
+                    source_url=source_url,
+                    resolution="no_data",
+                    confidence=min(0.5, person_confidence),
+                    retrieved_at=datetime.now(UTC).isoformat(),
+                ),
+            )
         property_id, property_label = next(
             (
                 (candidate_id, candidate_label)
@@ -449,6 +468,8 @@ async def answer_question(
     if plan.action is Action.VERIFY:
         answer = _verification_answer(person, question, values)
     related_people = await _related_people(client, entity, rule.property_id)
+    if not values:
+        resolution = "no_data"
     return AnswerResponse(
         person=person,
         related_people=related_people,

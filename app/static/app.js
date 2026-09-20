@@ -55,7 +55,10 @@ function answerCard(data) {
   const footer = el("div", undefined, "answer-footer");
   footer.append(el("span", `Confiance ${Math.round(data.evidence.confidence * 100)} %`));
   if (/^https:\/\/(www\.wikidata\.org|fr\.wikipedia\.org)\//.test(data.evidence.source_url)) {
-    const link = el("a", "Voir la source ↗");
+    const linkLabel = data.evidence.resolution === "no_data"
+      ? `Voir la fiche Wikidata de ${data.person.name} ↗`
+      : "Voir la source ↗";
+    const link = el("a", linkLabel);
     link.href = data.evidence.source_url;
     link.target = "_blank";
     link.rel = "noreferrer";

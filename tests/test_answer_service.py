@@ -95,8 +95,9 @@ class FakeClient:
         return {qid: labels[qid] for qid in qids}
 
     async def search_properties(self, query: str):
-        assert query == "couleur yeux"
-        return [("P1340", "couleur des yeux")]
+        if query == "couleur yeux":
+            return [("P1340", "couleur des yeux")]
+        return []
 
     async def get_wikipedia_summary(self, entity):
         return f"Résumé encyclopédique de {entity['labels']['fr']['value']}"
@@ -136,6 +137,19 @@ def test_dynamic_property_answer() -> None:
     result = run_answer("Quelle est la couleur des yeux de Marie Curie ?")
     assert result.evidence.property_id == "P1340"
     assert "bleu" in result.answer
+
+
+def test_missing_dynamic_property_returns_person_source() -> None:
+    result = run_answer("Quel est le signe astrologique de Marie Curie ?")
+    assert result.evidence.resolution == "no_data"
+    assert result.evidence.source_url.endswith("/Q1")
+    assert "consulter directement sa fiche Wikidata" in result.answer
+
+
+def test_missing_known_value_returns_person_source() -> None:
+    result = run_answer("Qui sont ses enfants ?", context_qid="Q2")
+    assert result.evidence.resolution == "no_data"
+    assert result.evidence.source_url.endswith("/Q2")
 
 
 def test_summary_answer() -> None:

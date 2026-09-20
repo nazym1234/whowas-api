@@ -26,4 +26,4 @@ def test_catalog_generates_hundreds_of_supported_questions() -> None:
         for phrase in phrases
         for template in templates
     }
-    assert len(generated) >= 400
+    assert len(generated) >= 800

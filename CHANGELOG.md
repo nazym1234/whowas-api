@@ -1,5 +1,12 @@
 # Changelog
 
+## 4.4.0
+
+- Extension à 359 formulations françaises et 1 077 constructions testées.
+- Ajout de formulations familières, inversées et conversationnelles sur 27 propriétés.
+- En cas de donnée absente, réponse non bloquante avec lien direct vers la fiche Wikidata.
+- Libération garantie de la question en attente après chaque requête, réussie ou échouée.
+
 ## 4.3.0
 
 - Catalogue de 181 formulations françaises couvrant 28 propriétés biographiques.
