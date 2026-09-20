@@ -3,6 +3,7 @@ import unicodedata
 from dataclasses import dataclass
 
 from app.models import Intent
+from app.phrase_catalog import PROPERTY_PHRASES
 
 
 @dataclass(frozen=True)
@@ -63,7 +64,7 @@ RULES: tuple[IntentRule, ...] = (
         Intent.OCCUPATION,
         "P106",
         "profession",
-        (r"metier", r"profession", r"que faisait", r"travaillait"),
+        (r"\bmetier\b", r"\bprofession\b", r"que faisait", r"travaillait"),
     ),
     IntentRule(
         Intent.EDUCATION,
@@ -153,7 +154,10 @@ def detect_intent(question: str) -> IntentRule:
     normalized = normalize(question)
     ordered_rules = sorted(RULES, key=lambda rule: rule.intent is Intent.SUMMARY)
     for rule in ordered_rules:
-        if any(re.search(pattern, normalized) for pattern in rule.patterns):
+        catalog_phrases = PROPERTY_PHRASES.get(rule.property_id, ())
+        if any(re.search(pattern, normalized) for pattern in rule.patterns) or any(
+            phrase in normalized for phrase in catalog_phrases
+        ):
             return rule
     raise ValueError(
         "Question non reconnue. Consultez /intents pour voir les dix types de questions acceptés."

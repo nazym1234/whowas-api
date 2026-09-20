@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.3.0
+
+- Catalogue de 181 formulations françaises couvrant 28 propriétés biographiques.
+- Plus de 500 variantes de questions générées par combinaison de structures naturelles.
+- Tests paramétrés de toutes les formulations et correction des collisions lexicales.
+
 ## 4.2.2
 
 - Reconnaissance des questions de décès formulées au pluriel.

@@ -13,6 +13,7 @@ calcul ou une comparaison, puis renvoie une réponse sourcée.
 - mode « Qui est-ce ? » inspiré d'Akinator avec moteur de déduction côté API ;
 - historique local des 50 dernières questions avec possibilité de les rejouer ;
 - questions libres et plus de 25 familles de propriétés biographiques ;
+- catalogue de 181 formulations françaises produisant plus de 500 variantes testées ;
 - actions `lookup`, `count`, `summary`, `age`, `duration`, `compare` et `verify` ;
 - âge et durée de vie calculés à partir de dates structurées ;
 - comparaison de deux personnalités ;
