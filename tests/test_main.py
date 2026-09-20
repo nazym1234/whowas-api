@@ -1,6 +1,7 @@
 from fastapi.testclient import TestClient
 
-from app.main import app
+from app.main import app, resolve_contextual_question
+from app.models import QuestionRequest
 
 
 def test_health_and_security_headers() -> None:
@@ -45,3 +46,22 @@ def test_akinator_rejects_unknown_session() -> None:
             },
         )
     assert response.status_code == 404
+
+
+def test_elliptical_year_reuses_previous_death_question() -> None:
+    payload = QuestionRequest(
+        question="Et en quelle année ?",
+        context_qid="Q1",
+        context_question="À quel âge est morte Jackie Kennedy ?",
+        context_property_id="P569+P570",
+    )
+    assert resolve_contextual_question(payload) == "Quand est-elle décédée ?"
+
+
+def test_new_explicit_question_is_not_rewritten() -> None:
+    payload = QuestionRequest(
+        question="Quel âge a Britney Spears ?",
+        context_qid="Q1",
+        context_question="À quel âge est morte Jackie Kennedy ?",
+    )
+    assert resolve_contextual_question(payload) == payload.question

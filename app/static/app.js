@@ -2,6 +2,8 @@ const state = {
   contextQid: localStorage.getItem("whowas_context_qid"),
   contextQids: JSON.parse(localStorage.getItem("whowas_context_qids") || "[]"),
   contextFrames: JSON.parse(localStorage.getItem("whowas_context_frames") || "[]"),
+  lastQuestion: localStorage.getItem("whowas_last_question"),
+  lastPropertyId: localStorage.getItem("whowas_last_property_id"),
   pendingQuestion: null,
   history: JSON.parse(localStorage.getItem("whowas_history") || "[]"),
   gameSession: null
@@ -85,6 +87,10 @@ function remember(question, data) {
   localStorage.setItem("whowas_context_qid", state.contextQid);
   localStorage.setItem("whowas_context_qids", JSON.stringify(state.contextQids));
   localStorage.setItem("whowas_context_frames", JSON.stringify(state.contextFrames));
+  state.lastQuestion = question;
+  state.lastPropertyId = data.evidence.property_id;
+  localStorage.setItem("whowas_last_question", state.lastQuestion);
+  localStorage.setItem("whowas_last_property_id", state.lastPropertyId);
   state.history.unshift({question, answer: data.answer, person: data.person.name, qid: data.person.qid, date: new Date().toISOString()});
   state.history = state.history.slice(0, 50);
   localStorage.setItem("whowas_history", JSON.stringify(state.history));
@@ -122,7 +128,9 @@ async function ask(personQid = null, forcedQuestion = null) {
         question,
         person_qid: personQid,
         context_qid: personQid ? null : state.contextQid,
-        context_qids: personQid ? [] : state.contextQids
+        context_qids: personQid ? [] : state.contextQids,
+        context_question: personQid ? null : state.lastQuestion,
+        context_property_id: personQid ? null : state.lastPropertyId
       })
     });
     const data = await response.json();
@@ -139,6 +147,7 @@ async function ask(personQid = null, forcedQuestion = null) {
     loading.remove();
     addMessage("assistant", `Je n’ai pas pu répondre : ${error.message}`);
   } finally {
+    state.pendingQuestion = null;
     askButton.disabled = false;
     questionInput.focus();
   }
@@ -246,6 +255,7 @@ document.querySelectorAll(".nav-item").forEach(button => button.addEventListener
 document.querySelectorAll("[data-question]").forEach(button => button.addEventListener("click", () => { questionInput.value = button.dataset.question; questionInput.focus(); }));
 askButton.addEventListener("click", () => ask());
 questionInput.addEventListener("keydown", event => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); ask(); } });
+questionInput.addEventListener("input", () => { state.pendingQuestion = null; });
 document.querySelector("#people-search").addEventListener("input", event => { clearTimeout(searchTimer); searchTimer = setTimeout(() => searchPeople(event.target.value), 280); });
 document.querySelector("#game-start").addEventListener("click", startGame);
 document.querySelector("#clear-history").addEventListener("click", () => { state.history = []; localStorage.removeItem("whowas_history"); renderHistory(); });

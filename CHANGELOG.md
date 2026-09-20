@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.2.1
+
+- Compréhension des continuations elliptiques comme « et en quelle année ? ».
+- Conservation de la dernière question et de la dernière propriété dans le contexte.
+- Suppression systématique d'une question en attente après un échec côté interface.
+
 ## 4.2.0
 
 - Mémoire conversationnelle structurée sur les 20 derniers tours.

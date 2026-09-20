@@ -42,6 +42,11 @@ def test_context_question_with_plural_pronoun() -> None:
     assert plan.person_names == ["__context__"]
 
 
+def test_elliptical_follow_up_uses_context() -> None:
+    plan = analyze_question("Et en quelle année ?", has_context=True)
+    assert plan.person_names == ["__context__"]
+
+
 def test_extract_two_people() -> None:
     names = extract_person_names("Compare Marie Curie et Albert Einstein")
     assert names == ["Marie Curie", "Albert Einstein"]

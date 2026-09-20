@@ -63,6 +63,8 @@ DEMONYMS = (
 
 
 def extract_person_names(question: str) -> list[str]:
+    if re.match(r"^\s*(?:et|sinon|aussi|donc|alors)\b", normalize(question)):
+        return []
     candidates = re.findall(
         r"\b[A-ZÀ-ÖØ-Þ][\wÀ-ÿ'-]*(?:\s+(?:(?:de|du|des|da|van|von|le|la)\s+)?"
         r"[A-ZÀ-ÖØ-Þ][\wÀ-ÿ'-]*)*",

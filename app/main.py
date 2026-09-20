@@ -11,7 +11,7 @@ from fastapi.responses import FileResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.akinator import AkinatorEngine
-from app.intents import RULES
+from app.intents import RULES, normalize
 from app.models import AkinatorAnswerRequest, AnswerResponse, QuestionRequest
 from app.observability import metrics
 from app.rate_limit import SlidingWindowRateLimiter
@@ -24,6 +24,24 @@ logger = logging.getLogger("whowas")
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 
 
+def resolve_contextual_question(payload: QuestionRequest) -> str:
+    normalized_question = normalize(payload.question)
+    previous_question = normalize(payload.context_question or "")
+    asks_elliptical_year = bool(
+        re.match(
+            r"^\s*(?:et\s+)?(?:en\s+)?quelle\s+annee\b",
+            normalized_question,
+        )
+    )
+    if not asks_elliptical_year or not payload.context_qid:
+        return payload.question
+    if "mort" in previous_question or "decede" in previous_question:
+        return "Quand est-elle décédée ?"
+    if re.search(r"\bnee?\b", previous_question) or payload.context_property_id == "P569":
+        return "Quand est-elle née ?"
+    return payload.question
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     app.state.wikidata = WikidataClient()
@@ -34,7 +52,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="WhoWas API",
     description="Moteur explicable de questions biographiques fondé sur Wikidata et Wikipédia.",
-    version="4.2.0",
+    version="4.2.1",
     lifespan=lifespan,
 )
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
@@ -143,7 +161,8 @@ async def answer(payload: QuestionRequest, request: Request) -> AnswerResponse:
         metrics.increment("rate_limited_total")
         raise HTTPException(status_code=429, detail="Trop de requêtes. Réessayez dans une minute.")
     try:
-        normalized_question = payload.question.casefold()
+        effective_question = resolve_contextual_question(payload)
+        normalized_question = normalize(payload.question)
         plural_reference = re.search(
             r"\b(?:ils|elles|eux|leur|leurs)\b",
             normalized_question,
@@ -151,7 +170,7 @@ async def answer(payload: QuestionRequest, request: Request) -> AnswerResponse:
         if plural_reference and len(payload.context_qids) > 1 and not payload.person_qid:
             return await answer_group_question(
                 request.app.state.wikidata,
-                payload.question,
+                effective_question,
                 payload.context_qids,
             )
         ordinal_qid = None
@@ -163,7 +182,7 @@ async def answer(payload: QuestionRequest, request: Request) -> AnswerResponse:
             ordinal_qid = payload.context_qids[1]
         return await answer_question(
             request.app.state.wikidata,
-            payload.question,
+            effective_question,
             payload.person_qid or ordinal_qid,
             payload.context_qid,
         )

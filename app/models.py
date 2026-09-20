@@ -69,6 +69,8 @@ class QuestionRequest(BaseModel):
     person_qid: str | None = Field(default=None, pattern=r"^Q\d+$")
     context_qid: str | None = Field(default=None, pattern=r"^Q\d+$")
     context_qids: list[str] = Field(default_factory=list, max_length=10)
+    context_question: str | None = Field(default=None, max_length=300)
+    context_property_id: str | None = Field(default=None, max_length=30)
 
 
 class Evidence(BaseModel):
