@@ -72,10 +72,10 @@ function remember(question, data) {
   state.contextQid = data.person.qid;
   const relationProperties = ["P22", "P25", "P26", "P40", "P3373"];
   const responsePeople = [data.person, ...(data.related_people || [])];
-  if (data.evidence.resolution === "conversation_group" || data.action === "compare") {
-    state.contextQids = responsePeople.map(person => person.qid);
-  } else if (relationProperties.includes(data.evidence.property_id) && data.related_people.length) {
+  if (relationProperties.includes(data.evidence.property_id) && data.related_people.length) {
     state.contextQids = data.related_people.map(person => person.qid);
+  } else if (data.evidence.resolution === "conversation_group" || data.action === "compare") {
+    state.contextQids = responsePeople.map(person => person.qid);
   } else {
     state.contextQids = [data.person.qid];
   }

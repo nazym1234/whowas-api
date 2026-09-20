@@ -1,5 +1,15 @@
 # Changelog
 
+## 4.4.1
+
+- Reconnaît les questions de lieu de naissance avec l'ordre naturel inversé, par exemple
+  « Elle est née où ? », « Il est né dans quel pays ? » et leurs variantes.
+- Ajoute des tests de conversation avec pronom et personne conservée dans le contexte.
+- Suit les groupes issus d'une relation : après avoir demandé les enfants d'une personne,
+  « ils », « elles » et « leurs » désignent les enfants dans les questions suivantes.
+- Reconnaît les formulations plurielles telles que « Et ils ont quels âges ? » et
+  « Ils sont nés quand ? ».
+
 ## 4.4.0
 
 - Extension à 359 formulations françaises et 1 077 constructions testées.

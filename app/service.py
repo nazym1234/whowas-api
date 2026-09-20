@@ -498,11 +498,18 @@ async def answer_group_question(
     responses = [await answer_question(client, question, person_qid=qid) for qid in qids[:10]]
     first = responses[0]
     people = [response.person for response in responses]
+    related_people = list(
+        {
+            person.qid: person for response in responses for person in response.related_people
+        }.values()
+    )
     answers = [f"{response.person.name} : {response.answer}" for response in responses]
     values = [value for response in responses for value in response.evidence.values]
     return AnswerResponse(
         person=first.person,
-        related_people=people[1:],
+        # Lors d'une question de parenté, le prochain « ils/elles » désigne les
+        # personnes trouvées. Sinon, il continue de désigner le groupe interrogé.
+        related_people=related_people or people[1:],
         question=question,
         intent=first.intent,
         answer=" ".join(answers),

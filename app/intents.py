@@ -27,6 +27,8 @@ RULES: tuple[IntentRule, ...] = (
         "lieu de naissance",
         (
             r"\bou (?:est|etait).{0,25}\bne[e]?\b",
+            r"\bne[e]?\b.{0,20}\bou\b",
+            r"\bne[e]?\b.{0,20}\bdans (?:quelle|quel) (?:ville|pays|endroit)\b",
             r"lieu de naissance",
             r"\bne[e]?\s+a\b",
         ),
@@ -37,6 +39,9 @@ RULES: tuple[IntentRule, ...] = (
         "date de naissance",
         (
             r"\bquand (?:est|etait).{0,25}\bne[e]?\b",
+            r"\b(?:ils|elles)\s+sont\s+ne(?:s|es)?\s+quand\b",
+            r"\bquand\s+(?:sont|etaient)-(?:ils|elles)\s+ne(?:s|es)?\b",
+            r"\b(?:ils|elles)\s+sont\s+ne(?:s|es)?\s+(?:en )?quelle annee\b",
             r"date de naissance",
             r"en quelle annee.{0,20}\bne[e]?",
         ),

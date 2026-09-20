@@ -25,10 +25,13 @@ class QuestionPlan:
 
 AGE_PATTERNS = (
     r"\bquel age\b",
+    r"\bquels ages?\b",
     r"\bquelle age\b",
+    r"\bquelles ages?\b",
     r"\bage de\b",
     r"\bage avait\b",
     r"\bage aurait\b",
+    r"\b(?:ils|elles) (?:ont|avaient|auraient) (?:quel|quels|quelle|quelles) ages?\b",
 )
 LIFESPAN_PATTERNS = (r"combien de temps.{0,80}vecu", r"duree de vie", r"vecu combien")
 DURATION_PATTERNS = (r"\bcombien de temps\b", r"\bpendant combien")

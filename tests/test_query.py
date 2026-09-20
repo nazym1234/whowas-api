@@ -30,6 +30,13 @@ def test_context_question() -> None:
     assert plan.person_names == ["__context__"]
 
 
+def test_context_birth_place_with_inverted_word_order() -> None:
+    plan = analyze_question("Elle est née où ?", has_context=True)
+    assert plan.person_names == ["__context__"]
+    assert plan.rule is not None
+    assert plan.rule.property_id == "P19"
+
+
 def test_context_question_with_plain_pronoun() -> None:
     plan = analyze_question("Elle a combien d'enfants ?", has_context=True)
     assert plan.action is Action.COUNT
@@ -40,6 +47,20 @@ def test_context_question_with_plural_pronoun() -> None:
     plan = analyze_question("Ils ont quel âge ?", has_context=True)
     assert plan.action is Action.AGE
     assert plan.person_names == ["__context__"]
+
+
+def test_context_question_with_leading_and_plural_age() -> None:
+    plan = analyze_question("Et ils ont quels âges ?", has_context=True)
+    assert plan.action is Action.AGE
+    assert plan.person_names == ["__context__"]
+
+
+def test_context_plural_birth_date() -> None:
+    plan = analyze_question("Et ils sont nés quand ?", has_context=True)
+    assert plan.action is Action.LOOKUP
+    assert plan.person_names == ["__context__"]
+    assert plan.rule is not None
+    assert plan.rule.property_id == "P569"
 
 
 def test_elliptical_follow_up_uses_context() -> None:

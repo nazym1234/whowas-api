@@ -163,6 +163,13 @@ def test_context_qid_answer() -> None:
     assert result.person.qid == "Q1"
 
 
+def test_context_qid_birth_place_with_inverted_word_order() -> None:
+    result = run_answer("Elle est née où ?", context_qid="Q1")
+    assert result.person.qid == "Q1"
+    assert result.evidence.property_id == "P19"
+    assert result.evidence.source_url.endswith("/Q1")
+
+
 def test_context_qid_with_plain_pronoun() -> None:
     result = run_answer("Elle a combien d'enfants ?", context_qid="Q1")
     assert result.person.qid == "Q1"
@@ -175,6 +182,22 @@ def test_group_context_answers_for_every_mentioned_person() -> None:
     assert result.evidence.resolution == "conversation_group"
     assert "Marie Curie" in result.answer
     assert "Albert Einstein" in result.answer
+
+
+def test_group_context_accepts_leading_and_plural_age() -> None:
+    result = asyncio.run(
+        answer_group_question(FakeClient(), "Et ils ont quels âges ?", ["Q1", "Q2"])
+    )
+    assert result.evidence.property_id == "P569"
+    assert "Marie Curie" in result.answer
+    assert "Albert Einstein" in result.answer
+
+
+def test_group_context_handles_plural_birth_date() -> None:
+    result = asyncio.run(answer_group_question(FakeClient(), "Ils sont nés quand ?", ["Q1", "Q2"]))
+    assert result.evidence.property_id == "P569"
+    assert "7 novembre 1867" in result.answer
+    assert "14 mars 1879" in result.answer
 
 
 def test_group_context_handles_plural_death_date() -> None:
