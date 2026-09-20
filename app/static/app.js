@@ -16,8 +16,10 @@ async function ask() {
     if (!response.ok) throw new Error(data.detail || "Erreur inattendue");
     result.innerHTML = `
       <h2>${data.person.name}</h2>
+      <p class="description">${data.person.description}</p>
       <p>${data.answer}</p>
       <p class="meta">Intention : <strong>${data.intent}</strong> · Propriété : <strong>${data.evidence.property_id}</strong><br>
+      Résolution : <strong>${data.evidence.resolution === "rule" ? "règle vérifiée" : "propriété détectée automatiquement"}</strong><br>
       <a href="${data.evidence.source_url}" target="_blank" rel="noreferrer">Consulter la donnée source Wikidata</a></p>`;
   } catch (error) {
     result.className = "result error";

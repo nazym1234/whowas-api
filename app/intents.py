@@ -15,6 +15,12 @@ class IntentRule:
 
 RULES: tuple[IntentRule, ...] = (
     IntentRule(
+        Intent.SUMMARY,
+        "DESCRIPTION",
+        "présentation",
+        (r"\bqui est\b", r"presente(?:-moi)?", r"biographie", r"parle-moi de"),
+    ),
+    IntentRule(
         Intent.BIRTH_PLACE,
         "P19",
         "lieu de naissance",
@@ -74,6 +80,22 @@ RULES: tuple[IntentRule, ...] = (
         "fonctions occupées",
         (r"fonction", r"poste", r"mandat", r"president", r"ministre"),
     ),
+    IntentRule(Intent.FAMILY, "P22", "père", (r"\bpere\b", r"\bpapa\b")),
+    IntentRule(Intent.FAMILY, "P25", "mère", (r"\bmere\b", r"\bmaman\b")),
+    IntentRule(Intent.FAMILY, "P3373", "frères et sœurs", (r"frere", r"soeur", r"fratrie")),
+    IntentRule(Intent.EMPLOYER, "P108", "employeur", (r"employeur", r"travaille pour", r"entreprise")),
+    IntentRule(Intent.RESIDENCE, "P551", "lieu de résidence", (r"habite", r"residence", r"vit actuellement")),
+    IntentRule(Intent.RELIGION, "P140", "religion", (r"religion", r"religieux")),
+    IntentRule(Intent.POLITICAL_PARTY, "P102", "parti politique", (r"parti politique", r"parti")),
+    IntentRule(Intent.LANGUAGES, "P1412", "langues parlées", (r"langue", r"parle quelles")),
+    IntentRule(Intent.NOTABLE_WORK, "P800", "œuvres principales", (r"oeuvre", r"livre", r"film connu")),
+    IntentRule(Intent.FIELD, "P101", "domaine d'activité", (r"domaine", r"specialite", r"discipline")),
+    IntentRule(Intent.GENRE, "P136", "genre artistique", (r"genre musical", r"genre artistique")),
+    IntentRule(Intent.INSTRUMENT, "P1303", "instrument", (r"instrument",)),
+    IntentRule(Intent.HEIGHT, "P2048", "taille", (r"combien mesure", r"quelle taille", r"\btaille\b")),
+    IntentRule(Intent.CAUSE_OF_DEATH, "P509", "cause du décès", (r"cause de.{0,10}mort", r"mort de quoi")),
+    IntentRule(Intent.BURIAL_PLACE, "P119", "lieu d'inhumation", (r"enterre", r"inhume", r"tombe")),
+    IntentRule(Intent.WEBSITE, "P856", "site officiel", (r"site officiel", r"site web")),
 )
 
 
@@ -84,7 +106,8 @@ def normalize(text: str) -> str:
 
 def detect_intent(question: str) -> IntentRule:
     normalized = normalize(question)
-    for rule in RULES:
+    ordered_rules = sorted(RULES, key=lambda rule: rule.intent is Intent.SUMMARY)
+    for rule in ordered_rules:
         if any(re.search(pattern, normalized) for pattern in rule.patterns):
             return rule
     raise ValueError(
@@ -105,11 +128,29 @@ QUESTION_WORDS = {
     "fille", "filles", "prix", "distinction", "distinctions", "recompense", "recompenses",
     "nobel", "fonction", "fonctions", "poste", "postes", "mandat", "president", "ministre",
     "recu", "recue", "recus", "recues", "occupe", "occupee", "occupes", "occupees",
+    "qui", "presente-moi", "biographie", "parle-moi", "pere", "papa", "mere", "maman",
+    "frere", "freres", "soeur", "soeurs", "fratrie", "employeur", "entreprise",
+    "travaille", "habite", "residence", "vit", "actuellement", "religion", "religieux",
+    "parti", "politique", "langue", "langues", "parle", "oeuvre", "oeuvres", "livre",
+    "livres", "film", "films", "connu", "connue", "domaine", "specialite", "discipline",
+    "genre", "musical", "artistique", "instrument", "instruments", "mesure", "taille",
+    "cause", "quoi", "enterre", "enterree", "inhume", "inhumee", "tombe", "site", "web",
+    "officiel", "officielle",
 }
 
 
 def extract_person_name(question: str) -> str:
     """Retire le vocabulaire de la question pour conserver le nom de la personne."""
+    capitalized = re.findall(
+        r"\b[A-ZÀ-ÖØ-Þ][\wÀ-ÿ'-]*(?:\s+(?:(?:de|du|des|da|van|von|le|la)\s+)?"
+        r"[A-ZÀ-ÖØ-Þ][\wÀ-ÿ'-]*)*",
+        question,
+    )
+    capitalized = [
+        item for item in capitalized if normalize(item.split()[0]) not in QUESTION_WORDS
+    ]
+    if capitalized:
+        return max(capitalized, key=lambda item: (len(item.split()), len(item)))
     words = re.findall(r"[\wÀ-ÿ'-]+", question, flags=re.UNICODE)
     name_words = [
         word
@@ -128,3 +169,13 @@ def extract_person_name(question: str) -> str:
 
 def asks_for_count(question: str) -> bool:
     return bool(re.search(r"\bcombien\b", normalize(question)))
+
+
+def extract_property_query(question: str, person_name: str) -> str:
+    without_name = re.sub(re.escape(person_name), " ", question, flags=re.IGNORECASE)
+    words = re.findall(r"[\wÀ-ÿ'-]+", without_name, flags=re.UNICODE)
+    useful = [word for word in words if normalize(word) not in QUESTION_WORDS]
+    query = " ".join(useful).strip(" '-")
+    if not query:
+        raise ValueError("La propriété recherchée n'est pas identifiable dans la question.")
+    return query

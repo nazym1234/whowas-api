@@ -6,6 +6,7 @@ from typing import Any
 import httpx
 
 API_URL = "https://www.wikidata.org/w/api.php"
+WIKIPEDIA_API_URL = "https://fr.wikipedia.org/w/api.php"
 USER_AGENT = "WhoWas/1.0 (https://github.com/nazym1234/whowas-api)"
 
 
@@ -26,7 +27,7 @@ class WikidataClient:
             params={
                 "action": "wbgetentities",
                 "ids": qid,
-                "props": "labels|descriptions|claims",
+                "props": "labels|descriptions|claims|sitelinks",
                 "languages": "fr|en",
                 "languagefallback": "1",
                 "format": "json",
@@ -110,6 +111,51 @@ class WikidataClient:
             labels[qid] = label["value"] if label else qid
         return labels
 
+    async def search_property(self, query: str) -> tuple[str, str]:
+        response = await self.client.get(
+            API_URL,
+            params={
+                "action": "wbsearchentities",
+                "search": query,
+                "language": "fr",
+                "uselang": "fr",
+                "type": "property",
+                "limit": "5",
+                "format": "json",
+                "origin": "*",
+            },
+        )
+        response.raise_for_status()
+        results = response.json().get("search", [])
+        if not results:
+            raise ValueError(f"La propriété « {query} » n'a pas été trouvée dans Wikidata.")
+        result = results[0]
+        return result["id"], result.get("label") or query
+
+    async def get_wikipedia_summary(self, entity: dict[str, Any]) -> str | None:
+        title = entity.get("sitelinks", {}).get("frwiki", {}).get("title")
+        if not title:
+            return None
+        response = await self.client.get(
+            WIKIPEDIA_API_URL,
+            params={
+                "action": "query",
+                "prop": "extracts",
+                "exintro": "1",
+                "explaintext": "1",
+                "redirects": "1",
+                "titles": title,
+                "format": "json",
+                "origin": "*",
+            },
+        )
+        response.raise_for_status()
+        pages = response.json().get("query", {}).get("pages", {})
+        if not pages:
+            return None
+        extract = next(iter(pages.values())).get("extract", "").strip()
+        return extract or None
+
 
 def localized_value(values: dict[str, Any], language: str = "fr") -> str:
     selected = values.get(language) or values.get("en")
@@ -149,6 +195,26 @@ async def format_claims(
             formatted.append(format_time(value["value"].get("time", "")))
         elif value.get("type") in {"string", "external-id"}:
             formatted.append(str(value.get("value")))
+        elif value.get("type") == "quantity":
+            amount = str(value["value"].get("amount", "")).lstrip("+")
+            unit_url = value["value"].get("unit", "")
+            unit_id = unit_url.rsplit("/", 1)[-1] if unit_url else ""
+            units = {
+                "Q11573": "m",
+                "Q174728": "cm",
+                "Q712226": "km",
+                "Q41803": "g",
+                "Q11570": "kg",
+                "Q7727": "min",
+                "Q25235": "h",
+            }
+            formatted.append(f"{amount} {units.get(unit_id, '')}".strip())
+        elif value.get("type") == "monolingualtext":
+            formatted.append(str(value["value"].get("text", "")))
+        elif value.get("type") == "globecoordinate":
+            latitude = value["value"].get("latitude")
+            longitude = value["value"].get("longitude")
+            formatted.append(f"{latitude}, {longitude}")
     return list(dict.fromkeys(formatted))
 
 

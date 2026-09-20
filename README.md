@@ -4,18 +4,23 @@ WhoWas est un moteur de questions biographiques. L'utilisateur écrit directemen
 question contenant le nom d'une personnalité et reçoit une réponse simple à partir des
 propriétés structurées de Wikidata.
 
-## Fonctionnalités V2
+## Fonctionnalités V3
 
 - détection du nom de la personnalité dans la question ;
 - recherche automatique de la personne dans Wikidata ;
-- reconnaissance de 10 intentions par règles explicables ;
+- recherche tolérante aux fautes et vérification que le résultat est un humain ;
+- plus de 25 familles de formulations reconnues par règles explicables ;
+- découverte automatique d'une propriété Wikidata pour les questions non prévues ;
+- questions de comptage (`combien d'enfants`, `combien de conjoints`, etc.) ;
+- présentation biographique à partir du résumé Wikipédia en français ;
 - récupération en temps réel des propriétés Wikidata ;
 - résolution en français des entités liées ;
+- formatage des dates, quantités, coordonnées et textes multilingues ;
 - réponse simple avec preuve et lien source ;
 - interface web et documentation OpenAPI ;
 - tests, Docker et intégration continue GitHub Actions.
 
-## Intentions reconnues
+## Exemples de questions
 
 | Intention | Exemple | Wikidata |
 |---|---|---|
@@ -29,6 +34,17 @@ propriétés structurées de Wikidata.
 | Enfants | Qui sont ses enfants ? | P40 |
 | Distinctions | Quels prix a-t-elle reçus ? | P166 |
 | Fonctions | Quelles fonctions a-t-elle occupées ? | P39 |
+| Famille | Qui est la mère de Beyoncé ? | P25 |
+| Employeur | Pour qui travaille cette personne ? | P108 |
+| Résidence | Où habite cette personne ? | P551 |
+| Religion | Quelle est sa religion ? | P140 |
+| Parti politique | À quel parti appartient-elle ? | P102 |
+| Langues | Quelles langues parle-t-elle ? | P1412 |
+| Œuvres principales | Quelles sont ses œuvres connues ? | P800 |
+| Domaine | Quel est son domaine de spécialité ? | P101 |
+| Taille | Combien mesure cette personne ? | P2048 |
+| Cause du décès | Quelle est la cause de sa mort ? | P509 |
+| Question libre | Quelle est la couleur des yeux de David Bowie ? | détection automatique |
 
 ## Lancer le projet
 
@@ -96,8 +112,9 @@ Question contenant le nom de la personne
 - les réponses dépendent de la complétude de Wikidata ;
 - aucun modèle d'intelligence artificielle n'est utilisé.
 
-Ces limites sont volontaires : elles rendent le comportement de la V2 prévisible,
-testable et explicable.
+La découverte automatique dépend des propriétés et libellés présents dans Wikidata. Une
+question ambiguë peut donc demander une reformulation. Ces limites rendent la V3 testable
+et explicable.
 
 ## Licence
 

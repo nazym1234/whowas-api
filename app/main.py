@@ -21,7 +21,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="WhoWas API",
     description="Questions biographiques simples fondées sur Wikidata.",
-    version="2.0.0",
+    version="3.0.0",
     lifespan=lifespan,
 )
 app.mount("/static", StaticFiles(directory="app/static"), name="static")

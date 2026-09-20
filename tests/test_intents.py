@@ -46,3 +46,12 @@ def test_extract_person_from_count_question() -> None:
     assert detect_intent(question).intent == Intent.SPOUSE
     assert extract_person_name(question) == "Margot Robbie"
     assert asks_for_count(question)
+
+
+def test_extract_person_and_property_from_free_question() -> None:
+    question = "Quelle est la couleur des yeux de Margot Robbie ?"
+    person = extract_person_name(question)
+    assert person == "Margot Robbie"
+    from app.intents import extract_property_query
+
+    assert extract_property_query(question, person) == "couleur yeux"

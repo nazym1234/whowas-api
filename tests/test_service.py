@@ -18,3 +18,13 @@ def test_build_count_answer() -> None:
     answer = build_answer("Margot Robbie", rule, ["Tom Ackerley"], count_requested=True)
     assert "1 conjoint" in answer
     assert "Tom Ackerley" in answer
+
+
+def test_build_generic_answer() -> None:
+    from app.intents import IntentRule
+    from app.models import Intent
+
+    rule = IntentRule(Intent.GENERIC, "P1340", "couleur des yeux", ())
+    answer = build_answer("David Bowie", rule, ["bleu"])
+    assert "couleur des yeux" in answer
+    assert "bleu" in answer

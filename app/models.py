@@ -4,6 +4,7 @@ from pydantic import BaseModel, Field
 
 
 class Intent(StrEnum):
+    SUMMARY = "summary"
     BIRTH_DATE = "birth_date"
     BIRTH_PLACE = "birth_place"
     DEATH_DATE = "death_date"
@@ -14,6 +15,21 @@ class Intent(StrEnum):
     CHILDREN = "children"
     AWARDS = "awards"
     POSITION = "position"
+    FAMILY = "family"
+    EMPLOYER = "employer"
+    RESIDENCE = "residence"
+    RELIGION = "religion"
+    POLITICAL_PARTY = "political_party"
+    LANGUAGES = "languages"
+    NOTABLE_WORK = "notable_work"
+    FIELD = "field"
+    GENRE = "genre"
+    INSTRUMENT = "instrument"
+    HEIGHT = "height"
+    CAUSE_OF_DEATH = "cause_of_death"
+    BURIAL_PLACE = "burial_place"
+    WEBSITE = "website"
+    GENERIC = "generic"
 
 
 class Person(BaseModel):
@@ -35,6 +51,7 @@ class Evidence(BaseModel):
     property_label: str
     values: list[str]
     source_url: str
+    resolution: str = "rule"
 
 
 class AnswerResponse(BaseModel):
