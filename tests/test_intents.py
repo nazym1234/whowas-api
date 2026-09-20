@@ -35,6 +35,7 @@ def test_unknown_question() -> None:
         ("Quelle était la profession d'Alan Turing ?", "Alan Turing"),
         ("Quels prix a reçu Nelson Mandela ?", "Nelson Mandela"),
         ("Qui sont les enfants de Barack Obama ?", "Barack Obama"),
+        ("Quel âge a billie eilish ?", "billie eilish"),
     ],
 )
 def test_extract_person_name(question: str, expected: str) -> None:

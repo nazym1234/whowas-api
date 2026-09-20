@@ -8,6 +8,12 @@ def test_age_question() -> None:
     assert plan.person_names == ["Margot Robbie"]
 
 
+def test_age_question_accepts_a_lowercase_name() -> None:
+    plan = analyze_question("Quel âge a billie eilish ?")
+    assert plan.action is Action.AGE
+    assert plan.person_names == ["billie eilish"]
+
+
 def test_comparison_question() -> None:
     plan = analyze_question("Qui est le plus âgé entre Messi et Ronaldo ?")
     assert plan.action is Action.COMPARE

@@ -198,6 +198,7 @@ QUESTION_WORDS = {
     "combien",
     "avoir",
     "avait",
+    "age",
     "eu",
     "annee",
     "date",
