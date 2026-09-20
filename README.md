@@ -31,11 +31,25 @@ sélectionne une personnalité, pose une question en français et reçoit une r�
 
 ## Lancer le projet
 
+### Windows PowerShell
+
+```powershell
+python -m venv .venv
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+.\\.venv\\Scripts\\Activate.ps1
+python -m pip install -e ".[dev]"
+python -m uvicorn app.main:app --reload
+```
+
+`Set-ExecutionPolicy -Scope Process` ne modifie que la fenêtre PowerShell actuelle.
+
+### Linux et macOS
+
 ```bash
 python -m venv .venv
 source .venv/bin/activate
-pip install -e ".[dev]"
-uvicorn app.main:app --reload
+python -m pip install -e ".[dev]"
+python -m uvicorn app.main:app --reload
 ```
 
 Ouvrez ensuite <http://localhost:8000>. Swagger est disponible sur
