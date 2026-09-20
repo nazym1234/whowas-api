@@ -47,6 +47,9 @@ VERIFY_PATTERNS = (
     r"\betait-elle\b",
     r"\ba-t-il\b",
     r"\ba-t-elle\b",
+    r"\bsont-ils\b",
+    r"\bsont-elles\b",
+    r"\b(?:ils|elles) sont.{0,30}\bou pas\b",
 )
 DEMONYMS = (
     "algerien",

@@ -47,6 +47,20 @@ def test_elliptical_follow_up_uses_context() -> None:
     assert plan.person_names == ["__context__"]
 
 
+def test_plural_death_date_question() -> None:
+    plan = analyze_question("Ils sont morts quand ?", has_context=True)
+    assert plan.action is Action.LOOKUP
+    assert plan.rule is not None
+    assert plan.rule.property_id == "P570"
+
+
+def test_plural_death_verification_question() -> None:
+    plan = analyze_question("Ils sont morts ou pas ?", has_context=True)
+    assert plan.action is Action.VERIFY
+    assert plan.rule is not None
+    assert plan.rule.property_id == "P570"
+
+
 def test_extract_two_people() -> None:
     names = extract_person_names("Compare Marie Curie et Albert Einstein")
     assert names == ["Marie Curie", "Albert Einstein"]

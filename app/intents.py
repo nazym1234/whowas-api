@@ -46,6 +46,9 @@ RULES: tuple[IntentRule, ...] = (
         "date de décès",
         (
             r"\bquand (?:est|etait).{0,20}(?:mort|decede[e]?)",
+            r"\b(?:ils|elles)\s+sont\s+mort(?:s|es)?\b",
+            r"\bsont-(?:ils|elles)\s+mort(?:s|es)?\b",
+            r"\b(?:mort|decede)s?\s+quand\b",
             r"date de deces",
             r"en quelle annee.{0,20}(?:mort|decede[e]?)",
         ),

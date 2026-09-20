@@ -163,6 +163,22 @@ def test_group_context_answers_for_every_mentioned_person() -> None:
     assert "Albert Einstein" in result.answer
 
 
+def test_group_context_handles_plural_death_date() -> None:
+    result = asyncio.run(
+        answer_group_question(FakeClient(), "Ils sont morts quand ?", ["Q1", "Q2"])
+    )
+    assert "4 juillet 1934" in result.answer
+    assert "18 avril 1955" in result.answer
+
+
+def test_group_context_handles_plural_death_verification() -> None:
+    result = asyncio.run(
+        answer_group_question(FakeClient(), "Ils sont morts ou pas ?", ["Q1", "Q2"])
+    )
+    assert "Oui, Marie Curie est décédé(e)" in result.answer
+    assert "Oui, Albert Einstein est décédé(e)" in result.answer
+
+
 def test_verification_answer() -> None:
     result = run_answer("Marie Curie est-elle australienne ?")
     assert result.action is Action.VERIFY

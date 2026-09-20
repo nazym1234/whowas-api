@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.2.2
+
+- Reconnaissance des questions de décès formulées au pluriel.
+- Distinction entre demande de date et vérification « morts ou pas ».
+- Réponse séparée pour chaque membre du dernier groupe conversationnel.
+
 ## 4.2.1
 
 - Compréhension des continuations elliptiques comme « et en quelle année ? ».

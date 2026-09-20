@@ -29,6 +29,14 @@ def test_unknown_question() -> None:
 
 
 @pytest.mark.parametrize(
+    "question",
+    ["Ils sont morts quand ?", "Sont-ils morts ?", "Ils sont morts ou pas ?"],
+)
+def test_plural_death_questions(question: str) -> None:
+    assert detect_intent(question).intent == Intent.DEATH_DATE
+
+
+@pytest.mark.parametrize(
     ("question", "expected"),
     [
         ("Où est née Marie Curie ?", "Marie Curie"),

@@ -1,3 +1,4 @@
+import re
 from datetime import UTC, date, datetime
 from typing import Any
 from urllib.parse import quote
@@ -145,6 +146,13 @@ DEMONYM_COUNTRIES = {
 
 def _verification_answer(person: Person, question: str, values: list[str]) -> str:
     normalized_question = normalize(question)
+    if re.search(r"\b(?:mort|morts|morte|mortes|decede|decedee)\b", normalized_question):
+        if values:
+            return f"Oui, {person.name} est décédé(e) d'après Wikidata : {values[0]}."
+        return (
+            f"Wikidata ne fournit pas de date de décès pour {person.name}. "
+            "Cela ne suffit pas à confirmer que cette personne est en vie."
+        )
     expected = [
         country for demonym, country in DEMONYM_COUNTRIES.items() if demonym in normalized_question
     ]
