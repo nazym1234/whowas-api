@@ -62,7 +62,7 @@ RULES: tuple[IntentRule, ...] = (
         Intent.SPOUSE,
         "P26",
         "conjoint ou conjointe",
-        (r"conjoint", r"conjointe", r"epoux", r"epouse", r"mari(?:e|ee)?"),
+        (r"conjoints?", r"conjointes?", r"epoux", r"epouses?", r"maris?", r"mariee?"),
     ),
     IntentRule(Intent.CHILDREN, "P40", "enfants", (r"enfant", r"fils", r"fille")),
     IntentRule(
@@ -96,11 +96,12 @@ QUESTION_WORDS = {
     "a", "au", "aux", "avec", "cette", "ce", "cet", "dans", "de", "des", "du",
     "elle", "en", "est", "etait", "il", "la", "le", "les", "lui", "ou", "par", "pour",
     "quand", "que", "quel", "quelle", "quelles", "quels", "qui", "sa", "ses", "son",
-    "sont", "sur", "un", "une",
+    "sont", "sur", "un", "une", "combien", "avoir", "avait", "eu",
     "annee", "date", "naissance", "ne", "nee", "mort", "morte", "decede", "decedee",
     "lieu", "nationalite", "pays", "origine", "metier", "profession", "faisait",
     "travaillait", "etudes", "universite", "ecole", "etudie", "etudiee", "conjoint",
-    "conjointe", "epoux", "epouse", "marie", "mariee", "enfant", "enfants", "fils",
+    "conjointe", "conjoints", "conjointes", "epoux", "epouse", "epouses", "mari", "maris",
+    "marie", "mariee", "enfant", "enfants", "fils",
     "fille", "filles", "prix", "distinction", "distinctions", "recompense", "recompenses",
     "nobel", "fonction", "fonctions", "poste", "postes", "mandat", "president", "ministre",
     "recu", "recue", "recus", "recues", "occupe", "occupee", "occupes", "occupees",
@@ -123,3 +124,7 @@ def extract_person_name(question: str) -> str:
             "« Où est née Marie Curie ? »"
         )
     return candidate
+
+
+def asks_for_count(question: str) -> bool:
+    return bool(re.search(r"\bcombien\b", normalize(question)))

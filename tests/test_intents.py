@@ -1,6 +1,6 @@
 import pytest
 
-from app.intents import detect_intent, extract_person_name
+from app.intents import asks_for_count, detect_intent, extract_person_name
 from app.models import Intent
 
 
@@ -39,3 +39,10 @@ def test_unknown_question() -> None:
 )
 def test_extract_person_name(question: str, expected: str) -> None:
     assert extract_person_name(question) == expected
+
+
+def test_extract_person_from_count_question() -> None:
+    question = "Combien de maris a eu Margot Robbie ?"
+    assert detect_intent(question).intent == Intent.SPOUSE
+    assert extract_person_name(question) == "Margot Robbie"
+    assert asks_for_count(question)

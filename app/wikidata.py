@@ -55,9 +55,26 @@ class WikidataClient:
             },
         )
         response.raise_for_status()
-        results = response.json().get("search", [])
-        for result in results:
-            qid = result.get("id")
+        candidate_ids = [result.get("id") for result in response.json().get("search", [])]
+        if not candidate_ids:
+            fallback = await self.client.get(
+                API_URL,
+                params={
+                    "action": "query",
+                    "list": "search",
+                    "srsearch": name,
+                    "srnamespace": "0",
+                    "srlimit": "5",
+                    "format": "json",
+                    "origin": "*",
+                },
+            )
+            fallback.raise_for_status()
+            candidate_ids = [
+                result.get("title")
+                for result in fallback.json().get("query", {}).get("search", [])
+            ]
+        for qid in candidate_ids:
             if not qid:
                 continue
             entity = await self.get_entity(qid)

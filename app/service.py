@@ -1,9 +1,14 @@
-from app.intents import IntentRule, detect_intent, extract_person_name
+from app.intents import IntentRule, asks_for_count, detect_intent, extract_person_name
 from app.models import AnswerResponse, Evidence, Person
 from app.wikidata import WikidataClient, format_claims, localized_value
 
 
-def build_answer(person_name: str, rule: IntentRule, values: list[str]) -> str:
+def build_answer(
+    person_name: str,
+    rule: IntentRule,
+    values: list[str],
+    count_requested: bool = False,
+) -> str:
     if not values:
         return (
             "Wikidata ne fournit pas de donnée pour "
@@ -11,6 +16,17 @@ def build_answer(person_name: str, rule: IntentRule, values: list[str]) -> str:
         )
 
     joined = ", ".join(values[:-1]) + (f" et {values[-1]}" if len(values) > 1 else values[0])
+    if count_requested:
+        labels = {
+            "spouse": ("conjoint", "conjoints"),
+            "children": ("enfant", "enfants"),
+            "awards": ("distinction", "distinctions"),
+            "position": ("fonction", "fonctions"),
+            "occupation": ("profession", "professions"),
+        }
+        singular, plural = labels.get(rule.intent.value, ("résultat", "résultats"))
+        label = singular if len(values) == 1 else plural
+        return f"Wikidata recense {len(values)} {label} pour {person_name} : {joined}."
     templates = {
         "birth_date": f"{person_name} est né(e) le {joined}.",
         "birth_place": f"{person_name} est né(e) à {joined}.",
@@ -44,7 +60,7 @@ async def answer_question(
         person=person,
         question=question,
         intent=rule.intent,
-        answer=build_answer(person.name, rule, values),
+        answer=build_answer(person.name, rule, values, asks_for_count(question)),
         evidence=Evidence(
             property_id=rule.property_id,
             property_label=rule.property_label,
