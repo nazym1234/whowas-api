@@ -1,12 +1,13 @@
 # WhoWas API
 
-WhoWas est une première version d'un moteur de questions biographiques. L'utilisateur
-sélectionne une personnalité, pose une question en français et reçoit une réponse simple
-à partir des propriétés structurées de Wikidata.
+WhoWas est un moteur de questions biographiques. L'utilisateur écrit directement une
+question contenant le nom d'une personnalité et reçoit une réponse simple à partir des
+propriétés structurées de Wikidata.
 
-## Fonctionnalités V1
+## Fonctionnalités V2
 
-- sélection parmi 10 personnalités ;
+- détection du nom de la personnalité dans la question ;
+- recherche automatique de la personne dans Wikidata ;
 - reconnaissance de 10 intentions par règles explicables ;
 - récupération en temps réel des propriétés Wikidata ;
 - résolution en français des entités liées ;
@@ -36,7 +37,7 @@ sélectionne une personnalité, pose une question en français et reçoit une r�
 ```powershell
 python -m venv .venv
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
-.\\.venv\\Scripts\\Activate.ps1
+.\.venv\Scripts\Activate.ps1
 python -m pip install -e ".[dev]"
 python -m uvicorn app.main:app --reload
 ```
@@ -68,17 +69,18 @@ docker run --rm -p 8000:8000 whowas-api
 curl -X POST http://localhost:8000/answer \
   -H "Content-Type: application/json" \
   -d '{
-    "person_qid": "Q7186",
-    "question": "Où est née cette personne ?"
+    "question": "Où est née Marie Curie ?"
   }'
 ```
 
 ## Architecture
 
 ```text
-Question + personne sélectionnée
+Question contenant le nom de la personne
             ↓
-    Détection de l'intention
+ Détection de l'intention et du nom
+            ↓
+ Recherche de la personne dans Wikidata
             ↓
  Propriété Wikidata correspondante
             ↓
@@ -89,12 +91,12 @@ Question + personne sélectionnée
 
 ## Limites de cette version
 
-- la personne doit être choisie dans la liste proposée ;
+- la question doit contenir le nom de la personnalité ;
 - les intentions reposent sur des règles et formulations françaises ;
 - les réponses dépendent de la complétude de Wikidata ;
 - aucun modèle d'intelligence artificielle n'est utilisé.
 
-Ces limites sont volontaires : elles rendent le comportement de la V1 prévisible,
+Ces limites sont volontaires : elles rendent le comportement de la V2 prévisible,
 testable et explicable.
 
 ## Licence

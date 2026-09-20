@@ -1,19 +1,6 @@
-from app.intents import IntentRule, detect_intent
+from app.intents import IntentRule, detect_intent, extract_person_name
 from app.models import AnswerResponse, Evidence, Person
 from app.wikidata import WikidataClient, format_claims, localized_value
-
-PEOPLE = (
-    Person(qid="Q7186", name="Marie Curie", description="Physicienne et chimiste franco-polonaise"),
-    Person(qid="Q937", name="Albert Einstein", description="Physicien théoricien"),
-    Person(qid="Q8023", name="Nelson Mandela", description="Président de l'Afrique du Sud"),
-    Person(qid="Q76", name="Barack Obama", description="Président des États-Unis"),
-    Person(qid="Q7259", name="Ada Lovelace", description="Mathématicienne britannique"),
-    Person(qid="Q9036", name="Alan Turing", description="Mathématicien et cryptologue britannique"),
-    Person(qid="Q317521", name="Simone Veil", description="Magistrate et femme d'État française"),
-    Person(qid="Q392", name="Bob Marley", description="Auteur-compositeur-interprète jamaïcain"),
-    Person(qid="Q762", name="Leonardo da Vinci", description="Artiste et savant italien"),
-    Person(qid="Q5582", name="Vincent van Gogh", description="Peintre néerlandais"),
-)
 
 
 def build_answer(person_name: str, rule: IntentRule, values: list[str]) -> str:
@@ -41,11 +28,11 @@ def build_answer(person_name: str, rule: IntentRule, values: list[str]) -> str:
 
 async def answer_question(
     client: WikidataClient,
-    person_qid: str,
     question: str,
 ) -> AnswerResponse:
     rule = detect_intent(question)
-    entity = await client.get_entity(person_qid)
+    searched_name = extract_person_name(question)
+    person_qid, entity = await client.search_person(searched_name)
     person = Person(
         qid=person_qid,
         name=localized_value(entity.get("labels", {})),

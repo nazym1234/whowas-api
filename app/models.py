@@ -23,8 +23,11 @@ class Person(BaseModel):
 
 
 class QuestionRequest(BaseModel):
-    person_qid: str = Field(pattern=r"^Q\d+$", examples=["Q7186"])
-    question: str = Field(min_length=3, max_length=300)
+    question: str = Field(
+        min_length=3,
+        max_length=300,
+        examples=["Où est née Marie Curie ?"],
+    )
 
 
 class Evidence(BaseModel):

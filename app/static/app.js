@@ -1,15 +1,6 @@
-const personSelect = document.querySelector("#person");
 const questionInput = document.querySelector("#question");
 const result = document.querySelector("#result");
 const askButton = document.querySelector("#ask");
-
-async function loadPeople() {
-  const response = await fetch("/people");
-  const people = await response.json();
-  personSelect.innerHTML = people.map(person =>
-    `<option value="${person.qid}">${person.name} — ${person.description}</option>`
-  ).join("");
-}
 
 async function ask() {
   result.className = "result";
@@ -19,7 +10,7 @@ async function ask() {
     const response = await fetch("/answer", {
       method: "POST",
       headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({person_qid: personSelect.value, question: questionInput.value})
+      body: JSON.stringify({question: questionInput.value})
     });
     const data = await response.json();
     if (!response.ok) throw new Error(data.detail || "Erreur inattendue");
@@ -40,5 +31,6 @@ document.querySelectorAll("[data-question]").forEach(button => {
   button.addEventListener("click", () => { questionInput.value = button.dataset.question; });
 });
 askButton.addEventListener("click", ask);
-loadPeople().catch(() => { personSelect.innerHTML = "<option>Erreur de chargement</option>"; });
-
+questionInput.addEventListener("keydown", event => {
+  if (event.key === "Enter") ask();
+});

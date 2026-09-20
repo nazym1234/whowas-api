@@ -1,6 +1,6 @@
 import pytest
 
-from app.intents import detect_intent
+from app.intents import detect_intent, extract_person_name
 from app.models import Intent
 
 
@@ -26,3 +26,16 @@ def test_detect_ten_intents(question: str, expected: Intent) -> None:
 def test_unknown_question() -> None:
     with pytest.raises(ValueError):
         detect_intent("Raconte-moi quelque chose")
+
+
+@pytest.mark.parametrize(
+    ("question", "expected"),
+    [
+        ("Où est née Marie Curie ?", "Marie Curie"),
+        ("Quelle était la profession d'Alan Turing ?", "Alan Turing"),
+        ("Quels prix a reçu Nelson Mandela ?", "Nelson Mandela"),
+        ("Qui sont les enfants de Barack Obama ?", "Barack Obama"),
+    ],
+)
+def test_extract_person_name(question: str, expected: str) -> None:
+    assert extract_person_name(question) == expected

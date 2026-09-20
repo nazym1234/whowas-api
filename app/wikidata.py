@@ -40,6 +40,37 @@ class WikidataClient:
             raise LookupError(f"La personne {qid} n'existe pas dans Wikidata.")
         return entity
 
+    async def search_person(self, name: str) -> tuple[str, dict[str, Any]]:
+        response = await self.client.get(
+            API_URL,
+            params={
+                "action": "wbsearchentities",
+                "search": name,
+                "language": "fr",
+                "uselang": "fr",
+                "type": "item",
+                "limit": "5",
+                "format": "json",
+                "origin": "*",
+            },
+        )
+        response.raise_for_status()
+        results = response.json().get("search", [])
+        for result in results:
+            qid = result.get("id")
+            if not qid:
+                continue
+            entity = await self.get_entity(qid)
+            instance_ids = {
+                value["value"]["id"]
+                for value in claim_values(entity, "P31")
+                if value.get("type") == "wikibase-entityid"
+                and "id" in value.get("value", {})
+            }
+            if "Q5" in instance_ids:
+                return qid, entity
+        raise LookupError(f"Aucune personnalité trouvée pour « {name} » dans Wikidata.")
+
     async def get_labels(self, qids: set[str], language: str = "fr") -> dict[str, str]:
         if not qids:
             return {}

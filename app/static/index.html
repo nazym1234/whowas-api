@@ -9,23 +9,20 @@
 <body>
   <main>
     <header>
-      <span class="badge">Wikidata · Version 1</span>
+      <span class="badge">Wikidata · Version 2</span>
       <h1>Une question sur une personnalité ?</h1>
-      <p>Sélectionne une personne, pose une question simple et obtiens une réponse accompagnée de sa donnée source.</p>
+      <p>Écris directement le nom dans ta question et obtiens une réponse accompagnée de sa donnée source.</p>
     </header>
 
     <section class="panel">
-      <label for="person">Personnalité</label>
-      <select id="person"><option>Chargement…</option></select>
-
       <label for="question">Question</label>
-      <input id="question" value="Où est née cette personne ?" maxlength="300">
+      <input id="question" value="Où est née Marie Curie ?" maxlength="300">
 
       <div class="examples">
-        <button data-question="Quand est née cette personne ?">Naissance</button>
-        <button data-question="Où est née cette personne ?">Lieu</button>
-        <button data-question="Quelle était sa profession ?">Profession</button>
-        <button data-question="Quelles distinctions a-t-elle reçues ?">Distinctions</button>
+        <button data-question="Quand est né Albert Einstein ?">Naissance</button>
+        <button data-question="Où est née Marie Curie ?">Lieu</button>
+        <button data-question="Quelle était la profession d'Alan Turing ?">Profession</button>
+        <button data-question="Quels prix a reçu Nelson Mandela ?">Distinctions</button>
       </div>
 
       <button id="ask" class="primary">Obtenir la réponse</button>
@@ -36,4 +33,3 @@
   <script src="/static/app.js"></script>
 </body>
 </html>
-

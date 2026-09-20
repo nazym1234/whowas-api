@@ -90,3 +90,36 @@ def detect_intent(question: str) -> IntentRule:
     raise ValueError(
         "Question non reconnue. Consultez /intents pour voir les dix types de questions acceptés."
     )
+
+
+QUESTION_WORDS = {
+    "a", "au", "aux", "avec", "cette", "ce", "cet", "dans", "de", "des", "du",
+    "elle", "en", "est", "etait", "il", "la", "le", "les", "lui", "ou", "par", "pour",
+    "quand", "que", "quel", "quelle", "quelles", "quels", "qui", "sa", "ses", "son",
+    "sont", "sur", "un", "une",
+    "annee", "date", "naissance", "ne", "nee", "mort", "morte", "decede", "decedee",
+    "lieu", "nationalite", "pays", "origine", "metier", "profession", "faisait",
+    "travaillait", "etudes", "universite", "ecole", "etudie", "etudiee", "conjoint",
+    "conjointe", "epoux", "epouse", "marie", "mariee", "enfant", "enfants", "fils",
+    "fille", "filles", "prix", "distinction", "distinctions", "recompense", "recompenses",
+    "nobel", "fonction", "fonctions", "poste", "postes", "mandat", "president", "ministre",
+    "recu", "recue", "recus", "recues", "occupe", "occupee", "occupes", "occupees",
+}
+
+
+def extract_person_name(question: str) -> str:
+    """Retire le vocabulaire de la question pour conserver le nom de la personne."""
+    words = re.findall(r"[\wÀ-ÿ'-]+", question, flags=re.UNICODE)
+    name_words = [
+        word
+        for word in words
+        if normalize(word) not in QUESTION_WORDS or word == "Marie"
+    ]
+    candidate = " ".join(name_words).strip(" '-")
+    candidate = re.sub(r"^[dDlL]['’]", "", candidate)
+    if len(candidate) < 2:
+        raise ValueError(
+            "Indiquez le nom de la personne dans la question, par exemple : "
+            "« Où est née Marie Curie ? »"
+        )
+    return candidate

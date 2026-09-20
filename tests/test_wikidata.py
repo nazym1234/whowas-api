@@ -51,3 +51,47 @@ def test_get_entity_rejects_missing_entity() -> None:
             await client.close()
 
     asyncio.run(run())
+
+
+def test_search_person_keeps_a_human_result() -> None:
+    async def handler(request: httpx.Request) -> httpx.Response:
+        action = request.url.params["action"]
+        if action == "wbsearchentities":
+            assert request.url.params["search"] == "Marie Curie"
+            return httpx.Response(200, json={"search": [{"id": "Q7186"}]})
+        assert action == "wbgetentities"
+        return httpx.Response(
+            200,
+            json={
+                "entities": {
+                    "Q7186": {
+                        "id": "Q7186",
+                        "labels": {"fr": {"value": "Marie Curie"}},
+                        "descriptions": {"fr": {"value": "physicienne et chimiste"}},
+                        "claims": {
+                            "P31": [
+                                {
+                                    "mainsnak": {
+                                        "datavalue": {
+                                            "type": "wikibase-entityid",
+                                            "value": {"id": "Q5"},
+                                        }
+                                    }
+                                }
+                            ]
+                        },
+                    }
+                }
+            },
+        )
+
+    async def run() -> None:
+        client = WikidataClient(transport=httpx.MockTransport(handler))
+        try:
+            qid, entity = await client.search_person("Marie Curie")
+            assert qid == "Q7186"
+            assert entity["labels"]["fr"]["value"] == "Marie Curie"
+        finally:
+            await client.close()
+
+    asyncio.run(run())
