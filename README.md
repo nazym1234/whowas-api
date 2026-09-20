@@ -8,6 +8,7 @@ calcul ou une comparaison, puis renvoie une réponse sourcée.
 
 - interface à quatre espaces : discussion, recherche, jeu et historique ;
 - conversation continue avec conservation de la personnalité courante ;
+- mémoire des personnes citées sur 20 tours, y compris les groupes et les pronoms pluriels ;
 - recherche de personnalités et sélection directe depuis Wikidata ;
 - mode « Qui est-ce ? » inspiré d'Akinator avec moteur de déduction côté API ;
 - historique local des 50 dernières questions avec possibilité de les rejouer ;

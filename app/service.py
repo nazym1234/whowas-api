@@ -20,6 +20,8 @@ from app.models import (
 from app.query import QuestionPlan, analyze_question
 from app.wikidata import WikidataClient, claim_values, format_claims, format_time, localized_value
 
+PERSON_RELATION_PROPERTIES = {"P22", "P25", "P26", "P40", "P3373"}
+
 
 class AmbiguousPersonError(ValueError):
     def __init__(self, searched_name: str, candidates: list[PersonCandidate]) -> None:
@@ -40,6 +42,25 @@ def _person_from_entity(qid: str, entity: dict[str, Any]) -> Person:
         description=localized_value(entity.get("descriptions", {})),
         image_url=image_url,
     )
+
+
+async def _related_people(
+    client: WikidataClient,
+    entity: dict[str, Any],
+    property_id: str,
+) -> list[Person]:
+    if property_id not in PERSON_RELATION_PROPERTIES:
+        return []
+    qids = [
+        str(value.get("value", {}).get("id"))
+        for value in claim_values(entity, property_id)
+        if value.get("type") == "wikibase-entityid"
+    ][:10]
+    people: list[Person] = []
+    for qid in qids:
+        related_entity = await client.get_entity(qid)
+        people.append(_person_from_entity(qid, related_entity))
+    return people
 
 
 async def resolve_person(
@@ -419,8 +440,10 @@ async def answer_question(
     answer = build_answer(person.name, rule, values, asks_for_count(question))
     if plan.action is Action.VERIFY:
         answer = _verification_answer(person, question, values)
+    related_people = await _related_people(client, entity, rule.property_id)
     return AnswerResponse(
         person=person,
+        related_people=related_people,
         question=question,
         intent=rule.intent,
         answer=answer,
@@ -434,5 +457,34 @@ async def answer_question(
             confidence=min(plan.confidence, person_confidence),
             retrieved_at=datetime.now(UTC).isoformat(),
             details=_evidence_details(entity, rule.property_id, values),
+        ),
+    )
+
+
+async def answer_group_question(
+    client: WikidataClient,
+    question: str,
+    qids: list[str],
+) -> AnswerResponse:
+    responses = [await answer_question(client, question, person_qid=qid) for qid in qids[:10]]
+    first = responses[0]
+    people = [response.person for response in responses]
+    answers = [f"{response.person.name} : {response.answer}" for response in responses]
+    values = [value for response in responses for value in response.evidence.values]
+    return AnswerResponse(
+        person=first.person,
+        related_people=people[1:],
+        question=question,
+        intent=first.intent,
+        answer=" ".join(answers),
+        action=first.action,
+        evidence=Evidence(
+            property_id=first.evidence.property_id,
+            property_label=first.evidence.property_label,
+            values=values,
+            source_url=first.evidence.source_url,
+            resolution="conversation_group",
+            confidence=min(response.evidence.confidence for response in responses),
+            retrieved_at=datetime.now(UTC).isoformat(),
         ),
     )

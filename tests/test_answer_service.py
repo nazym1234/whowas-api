@@ -1,7 +1,7 @@
 import asyncio
 
 from app.models import Action, PersonCandidate
-from app.service import answer_question
+from app.service import answer_group_question, answer_question
 
 
 def time_claim(value: str) -> list[dict[str, object]]:
@@ -64,6 +64,7 @@ class FakeClient:
                 "Q2", "Albert Einstein", "+1879-03-14T00:00:00Z", "+1955-04-18T00:00:00Z"
             ),
         }
+        self.entities["Q1"]["claims"]["P40"] = entity_claim("Q2")
 
     async def search_people(self, name: str):
         qid = "Q2" if "Einstein" in name else "Q1"
@@ -85,7 +86,12 @@ class FakeClient:
         return self.entities[qid]
 
     async def get_labels(self, qids: set[str], language: str = "fr"):
-        labels = {"Q408": "Australie", "Q17122834": "bleu", "Q100": "présidente"}
+        labels = {
+            "Q2": "Albert Einstein",
+            "Q408": "Australie",
+            "Q17122834": "bleu",
+            "Q100": "présidente",
+        }
         return {qid: labels[qid] for qid in qids}
 
     async def search_properties(self, query: str):
@@ -147,6 +153,14 @@ def test_context_qid_with_plain_pronoun() -> None:
     result = run_answer("Elle a combien d'enfants ?", context_qid="Q1")
     assert result.person.qid == "Q1"
     assert result.action is Action.COUNT
+    assert [person.qid for person in result.related_people] == ["Q2"]
+
+
+def test_group_context_answers_for_every_mentioned_person() -> None:
+    result = asyncio.run(answer_group_question(FakeClient(), "Ils ont quel âge ?", ["Q1", "Q2"]))
+    assert result.evidence.resolution == "conversation_group"
+    assert "Marie Curie" in result.answer
+    assert "Albert Einstein" in result.answer
 
 
 def test_verification_answer() -> None:

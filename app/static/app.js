@@ -1,5 +1,7 @@
 const state = {
   contextQid: localStorage.getItem("whowas_context_qid"),
+  contextQids: JSON.parse(localStorage.getItem("whowas_context_qids") || "[]"),
+  contextFrames: JSON.parse(localStorage.getItem("whowas_context_frames") || "[]"),
   pendingQuestion: null,
   history: JSON.parse(localStorage.getItem("whowas_history") || "[]"),
   gameSession: null
@@ -63,7 +65,26 @@ function answerCard(data) {
 
 function remember(question, data) {
   state.contextQid = data.person.qid;
+  const relationProperties = ["P22", "P25", "P26", "P40", "P3373"];
+  const responsePeople = [data.person, ...(data.related_people || [])];
+  if (data.evidence.resolution === "conversation_group" || data.action === "compare") {
+    state.contextQids = responsePeople.map(person => person.qid);
+  } else if (relationProperties.includes(data.evidence.property_id) && data.related_people.length) {
+    state.contextQids = data.related_people.map(person => person.qid);
+  } else {
+    state.contextQids = [data.person.qid];
+  }
+  const frame = {
+    subject_qid: state.contextQid,
+    mentioned_qids: state.contextQids,
+    question,
+    people: responsePeople.map(person => ({qid: person.qid, name: person.name}))
+  };
+  state.contextFrames.push(frame);
+  state.contextFrames = state.contextFrames.slice(-20);
   localStorage.setItem("whowas_context_qid", state.contextQid);
+  localStorage.setItem("whowas_context_qids", JSON.stringify(state.contextQids));
+  localStorage.setItem("whowas_context_frames", JSON.stringify(state.contextFrames));
   state.history.unshift({question, answer: data.answer, person: data.person.name, qid: data.person.qid, date: new Date().toISOString()});
   state.history = state.history.slice(0, 50);
   localStorage.setItem("whowas_history", JSON.stringify(state.history));
@@ -97,7 +118,12 @@ async function ask(personQid = null, forcedQuestion = null) {
     const response = await fetch("/answer", {
       method: "POST",
       headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({question, person_qid: personQid, context_qid: personQid ? null : state.contextQid})
+      body: JSON.stringify({
+        question,
+        person_qid: personQid,
+        context_qid: personQid ? null : state.contextQid,
+        context_qids: personQid ? [] : state.contextQids
+      })
     });
     const data = await response.json();
     loading.remove();
@@ -141,7 +167,9 @@ async function searchPeople(query) {
       card.append(info, el("span", "Discuter →", "card-action"));
       card.addEventListener("click", () => {
         state.contextQid = person.qid;
+        state.contextQids = [person.qid];
         localStorage.setItem("whowas_context_qid", person.qid);
+        localStorage.setItem("whowas_context_qids", JSON.stringify(state.contextQids));
         showView("chat");
         questionInput.value = `Qui est ${person.name} ?`;
         questionInput.focus();

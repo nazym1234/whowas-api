@@ -1,5 +1,6 @@
 import json
 import logging
+import re
 import time
 from contextlib import asynccontextmanager
 from uuid import uuid4
@@ -14,7 +15,7 @@ from app.intents import RULES
 from app.models import AkinatorAnswerRequest, AnswerResponse, QuestionRequest
 from app.observability import metrics
 from app.rate_limit import SlidingWindowRateLimiter
-from app.service import AmbiguousPersonError, answer_question
+from app.service import AmbiguousPersonError, answer_group_question, answer_question
 from app.wikidata import UpstreamUnavailableError, WikidataClient
 
 rate_limiter = SlidingWindowRateLimiter(limit=30, window_seconds=60)
@@ -33,7 +34,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="WhoWas API",
     description="Moteur explicable de questions biographiques fondé sur Wikidata et Wikipédia.",
-    version="4.1.0",
+    version="4.2.0",
     lifespan=lifespan,
 )
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
@@ -142,10 +143,28 @@ async def answer(payload: QuestionRequest, request: Request) -> AnswerResponse:
         metrics.increment("rate_limited_total")
         raise HTTPException(status_code=429, detail="Trop de requêtes. Réessayez dans une minute.")
     try:
+        normalized_question = payload.question.casefold()
+        plural_reference = re.search(
+            r"\b(?:ils|elles|eux|leur|leurs)\b",
+            normalized_question,
+        )
+        if plural_reference and len(payload.context_qids) > 1 and not payload.person_qid:
+            return await answer_group_question(
+                request.app.state.wikidata,
+                payload.question,
+                payload.context_qids,
+            )
+        ordinal_qid = None
+        if payload.context_qids and re.search(r"\b(?:le )?premier\b", normalized_question):
+            ordinal_qid = payload.context_qids[0]
+        elif len(payload.context_qids) > 1 and re.search(
+            r"\b(?:le )?(?:deuxieme|second)\b", normalized_question
+        ):
+            ordinal_qid = payload.context_qids[1]
         return await answer_question(
             request.app.state.wikidata,
             payload.question,
-            payload.person_qid,
+            payload.person_qid or ordinal_qid,
             payload.context_qid,
         )
     except AmbiguousPersonError as exc:

@@ -1,5 +1,12 @@
 # Changelog
 
+## 4.2.0
+
+- Mémoire conversationnelle structurée sur les 20 derniers tours.
+- Suivi distinct du sujet principal et du dernier groupe de personnes mentionné.
+- Résolution des pronoms singuliers et pluriels ainsi que de « premier » et « deuxième ».
+- Réponses groupées, notamment pour l'âge des enfants ou d'autres personnes liées.
+
 ## 4.1.0
 
 - Nouvelle interface applicative avec navigation latérale et conversation continue.

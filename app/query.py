@@ -75,8 +75,13 @@ def extract_person_names(question: str) -> list[str]:
         "dans",
         "entre",
         "elle",
+        "elles",
         "il",
+        "ils",
         "lui",
+        "eux",
+        "leur",
+        "leurs",
         "ou",
         "quand",
         "quel",
@@ -97,7 +102,8 @@ def extract_person_names(question: str) -> list[str]:
         return unique
     normalized = normalize(question)
     refers_to_context = re.search(
-        r"\b(?:il|elle|lui|son|sa|ses)\b|\b(?:est|etait|a)(?:-t)?-(?:il|elle)\b",
+        r"\b(?:il|elle|ils|elles|eux|lui|leur|leurs|son|sa|ses)\b|"
+        r"\b(?:est|etait|a)(?:-t)?-(?:il|elle)\b",
         normalized,
     )
     if refers_to_context:
