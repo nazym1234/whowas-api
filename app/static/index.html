@@ -9,9 +9,9 @@
 <body>
   <main>
     <header>
-      <span class="badge">Wikidata · Version 3</span>
+      <span class="badge">Wikidata + Wikipédia · Version 4</span>
       <h1>Une question sur une personnalité ?</h1>
-      <p>Pose une question libre sur une personnalité. WhoWas identifie la personne, comprend la propriété recherchée et cite sa source.</p>
+      <p>Pose une question, calcule un âge, compare deux personnes ou continue avec « il » et « elle ». Chaque réponse reste traçable jusqu'à sa source.</p>
     </header>
 
     <section class="panel">
@@ -19,9 +19,9 @@
       <input id="question" value="Où est née Marie Curie ?" maxlength="300">
 
       <div class="examples">
-        <button data-question="Qui est Margot Robbie ?">Présentation</button>
-        <button data-question="Combien d'enfants a Barack Obama ?">Comptage</button>
-        <button data-question="Quelle est la taille de Michael Jordan ?">Taille</button>
+        <button data-question="Quel âge a Margot Robbie ?">Âge</button>
+        <button data-question="Qui est le plus âgé entre Messi et Ronaldo ?">Comparer</button>
+        <button data-question="Combien de temps Marie Curie a-t-elle vécu ?">Durée de vie</button>
         <button data-question="Quelle est la couleur des yeux de David Bowie ?">Question libre</button>
       </div>
 
@@ -29,6 +29,7 @@
     </section>
 
     <section id="result" class="result hidden" aria-live="polite"></section>
+    <section id="history" class="history" aria-label="Historique des questions"></section>
   </main>
   <script src="/static/app.js"></script>
 </body>

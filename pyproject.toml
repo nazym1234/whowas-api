@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "whowas-api"
-version = "1.0.0"
+version = "4.0.0"
 description = "API de questions biographiques simples fondée sur Wikidata"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -17,7 +17,9 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
   "pytest>=8,<10",
+  "pytest-cov>=6,<8",
   "ruff>=0.8,<1.0",
+  "mypy>=1.14,<2.0",
 ]
 
 [tool.hatch.build.targets.wheel]
@@ -34,3 +36,8 @@ target-version = "py311"
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
 
+[tool.mypy]
+python_version = "3.11"
+check_untyped_defs = true
+no_implicit_optional = true
+warn_unused_ignores = true

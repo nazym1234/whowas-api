@@ -1,14 +1,24 @@
+import json
+import logging
+import time
 from contextlib import asynccontextmanager
+from uuid import uuid4
 
 import httpx
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.intents import RULES
 from app.models import AnswerResponse, QuestionRequest
-from app.service import answer_question
-from app.wikidata import WikidataClient
+from app.observability import metrics
+from app.rate_limit import SlidingWindowRateLimiter
+from app.service import AmbiguousPersonError, answer_question
+from app.wikidata import UpstreamUnavailableError, WikidataClient
+
+rate_limiter = SlidingWindowRateLimiter(limit=30, window_seconds=60)
+logger = logging.getLogger("whowas")
+logging.basicConfig(level=logging.INFO, format="%(message)s")
 
 
 @asynccontextmanager
@@ -20,11 +30,43 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="WhoWas API",
-    description="Questions biographiques simples fondées sur Wikidata.",
-    version="3.0.0",
+    description="Moteur explicable de questions biographiques fondé sur Wikidata et Wikipédia.",
+    version="4.0.0",
     lifespan=lifespan,
 )
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
+
+
+@app.middleware("http")
+async def security_and_observability(request: Request, call_next):
+    started = time.perf_counter()
+    request_id = request.headers.get("X-Request-ID") or str(uuid4())
+    response = await call_next(request)
+    duration = time.perf_counter() - started
+    metrics.observe_request(duration)
+    response.headers["X-Request-ID"] = request_id
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; img-src 'self' https://commons.wikimedia.org "
+        "https://upload.wikimedia.org data:; "
+        "style-src 'self'; script-src 'self'; connect-src 'self'"
+    )
+    logger.info(
+        json.dumps(
+            {
+                "event": "http_request",
+                "request_id": request_id,
+                "method": request.method,
+                "path": request.url.path,
+                "status": response.status_code,
+                "duration_ms": round(duration * 1000, 2),
+            }
+        )
+    )
+    return response
 
 
 @app.get("/", include_in_schema=False)
@@ -35,6 +77,33 @@ async def home() -> FileResponse:
 @app.get("/health")
 async def health() -> dict[str, str]:
     return {"status": "ok"}
+
+
+@app.get("/health/live")
+async def liveness() -> dict[str, str]:
+    return {"status": "alive"}
+
+
+@app.get("/health/ready")
+async def readiness(request: Request) -> dict[str, object]:
+    client = request.app.state.wikidata
+    return {
+        "status": "ready" if client.is_available else "degraded",
+        "cache_entries": client.cache.size,
+        "circuit_open": not client.is_available,
+    }
+
+
+@app.get("/metrics", response_class=PlainTextResponse)
+async def prometheus_metrics() -> str:
+    return metrics.render()
+
+
+@app.get("/people/search")
+async def search_people(q: str, request: Request):
+    if len(q.strip()) < 2:
+        raise HTTPException(status_code=422, detail="Saisissez au moins deux caractères.")
+    return await request.app.state.wikidata.search_people(q.strip())
 
 
 @app.get("/intents")
@@ -51,11 +120,26 @@ async def list_intents() -> list[dict[str, object]]:
 
 @app.post("/answer", response_model=AnswerResponse)
 async def answer(payload: QuestionRequest, request: Request) -> AnswerResponse:
+    client_key = request.client.host if request.client else "unknown"
+    if not await rate_limiter.allow(client_key):
+        metrics.increment("rate_limited_total")
+        raise HTTPException(status_code=429, detail="Trop de requêtes. Réessayez dans une minute.")
     try:
         return await answer_question(
             request.app.state.wikidata,
             payload.question,
+            payload.person_qid,
+            payload.context_qid,
         )
+    except AmbiguousPersonError as exc:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "message": str(exc),
+                "searched_name": exc.searched_name,
+                "candidates": [candidate.model_dump() for candidate in exc.candidates],
+            },
+        ) from exc
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     except LookupError as exc:
@@ -64,4 +148,9 @@ async def answer(payload: QuestionRequest, request: Request) -> AnswerResponse:
         raise HTTPException(
             status_code=502,
             detail="Wikidata est temporairement indisponible. Réessayez dans un instant.",
+        ) from exc
+    except UpstreamUnavailableError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="Wikidata ou Wikipédia est temporairement indisponible.",
         ) from exc

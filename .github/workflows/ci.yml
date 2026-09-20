@@ -11,14 +11,30 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.13"
+          python-version: ${{ matrix.python-version }}
           cache: pip
       - run: pip install -e ".[dev]"
       - run: ruff check .
-      - run: pytest -q
-      - run: docker build -t whowas-api .
+      - run: ruff format --check .
+      - run: mypy app
+      - run: pytest --cov=app --cov-fail-under=85 --cov-report=term-missing -q
 
+  container:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t whowas-api .
+      - uses: aquasecurity/trivy-action@0.33.1
+        with:
+          image-ref: whowas-api
+          format: table
+          exit-code: "1"
+          severity: CRITICAL,HIGH

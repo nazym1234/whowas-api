@@ -17,7 +17,18 @@ button:hover { border-color: #7488da; }
 .result { margin-top: 18px; }
 .result h2 { margin-top: 0; }
 .result a { color: #aabaff; }
+.person-header { display: flex; align-items: center; gap: 18px; }
+.person-header img { width: 88px; height: 88px; border-radius: 16px; object-fit: cover; background: #0b1020; }
+.description { margin: 4px 0 0; font-size: .92rem; }
+.answer { color: #f7f8ff; font-size: 1.13rem; }
+.candidate-list { display: grid; gap: 10px; }
+.candidate { display: flex; flex-direction: column; align-items: flex-start; border-radius: 12px; text-align: left; }
+.candidate span { margin-top: 3px; color: #9ca8c3; font-size: .85rem; }
+.history { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 24px; }
+.history h2 { width: 100%; margin: 0 0 4px; font-size: 1rem; color: #abb5ce; }
+.history-item { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+details { margin-top: 16px; color: #abb5ce; }
+summary { cursor: pointer; color: #dce2f7; }
 .meta { padding-top: 14px; border-top: 1px solid #2a3550; color: #9ca8c3; font-size: .9rem; }
 .hidden { display: none; }
 .error { border-color: #823e4b; color: #ffb9c4; }
-

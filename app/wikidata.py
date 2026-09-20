@@ -1,30 +1,95 @@
 from __future__ import annotations
 
+import asyncio
+import json
+import time
 from datetime import datetime
+from difflib import SequenceMatcher
 from typing import Any
 
 import httpx
 
+from app.cache import TTLCache
+from app.models import PersonCandidate
+from app.observability import metrics
+
 API_URL = "https://www.wikidata.org/w/api.php"
 WIKIPEDIA_API_URL = "https://fr.wikipedia.org/w/api.php"
-USER_AGENT = "WhoWas/1.0 (https://github.com/nazym1234/whowas-api)"
+USER_AGENT = "WhoWas/4.0 (https://github.com/nazym1234/whowas-api)"
+
+
+class UpstreamUnavailableError(RuntimeError):
+    pass
 
 
 class WikidataClient:
     def __init__(self, transport: httpx.AsyncBaseTransport | None = None) -> None:
         self.client = httpx.AsyncClient(
             headers={"User-Agent": USER_AGENT},
-            timeout=10,
+            timeout=httpx.Timeout(10, connect=5),
             transport=transport,
+            trust_env=False,
         )
+        self.cache = TTLCache(max_size=512)
+        self._semaphore = asyncio.Semaphore(8)
+        self._consecutive_failures = 0
+        self._circuit_open_until = 0.0
+
+    async def _request_json(
+        self,
+        url: str,
+        params: dict[str, str],
+        *,
+        ttl: float = 900,
+    ) -> dict[str, Any]:
+        cache_key = f"{url}?{json.dumps(params, sort_keys=True, ensure_ascii=False)}"
+        cached = await self.cache.get(cache_key)
+        if cached is not None:
+            metrics.increment("cache_hits_total")
+            return cached
+        metrics.increment("cache_misses_total")
+        if time.monotonic() < self._circuit_open_until:
+            raise UpstreamUnavailableError("Le service externe est temporairement protégé.")
+
+        last_error: Exception | None = None
+        for attempt in range(3):
+            try:
+                async with self._semaphore:
+                    metrics.increment(
+                        "wikipedia_requests_total"
+                        if "wikipedia.org" in url
+                        else "wikidata_requests_total"
+                    )
+                    response = await self.client.get(url, params=params)
+                if response.status_code == 429 or response.status_code >= 500:
+                    response.raise_for_status()
+                response.raise_for_status()
+                data = response.json()
+                self._consecutive_failures = 0
+                await self.cache.set(cache_key, data, ttl)
+                return data
+            except (httpx.HTTPError, ValueError) as exc:
+                last_error = exc
+                metrics.increment("upstream_errors_total")
+                self._consecutive_failures += 1
+                if attempt < 2:
+                    await asyncio.sleep(0.1 * (2**attempt))
+
+        if self._consecutive_failures >= 5:
+            self._circuit_open_until = time.monotonic() + 30
+        raise UpstreamUnavailableError("Wikidata ou Wikipédia ne répond pas.") from last_error
 
     async def close(self) -> None:
         await self.client.aclose()
 
+    @property
+    def is_available(self) -> bool:
+        return time.monotonic() >= self._circuit_open_until
+
     async def get_entity(self, qid: str) -> dict[str, Any]:
-        response = await self.client.get(
+        data = await self._request_json(
             API_URL,
-            params={
+            {
                 "action": "wbgetentities",
                 "ids": qid,
                 "props": "labels|descriptions|claims|sitelinks",
@@ -34,17 +99,16 @@ class WikidataClient:
                 "origin": "*",
             },
         )
-        response.raise_for_status()
-        entities = response.json().get("entities", {})
+        entities = data.get("entities", {})
         entity = entities.get(qid)
         if not entity or entity.get("missing") is not None:
             raise LookupError(f"La personne {qid} n'existe pas dans Wikidata.")
         return entity
 
     async def search_person(self, name: str) -> tuple[str, dict[str, Any]]:
-        response = await self.client.get(
+        data = await self._request_json(
             API_URL,
-            params={
+            {
                 "action": "wbsearchentities",
                 "search": name,
                 "language": "fr",
@@ -55,12 +119,11 @@ class WikidataClient:
                 "origin": "*",
             },
         )
-        response.raise_for_status()
-        candidate_ids = [result.get("id") for result in response.json().get("search", [])]
+        candidate_ids = [result.get("id") for result in data.get("search", [])]
         if not candidate_ids:
-            fallback = await self.client.get(
+            fallback = await self._request_json(
                 API_URL,
-                params={
+                {
                     "action": "query",
                     "list": "search",
                     "srsearch": name,
@@ -70,10 +133,8 @@ class WikidataClient:
                     "origin": "*",
                 },
             )
-            fallback.raise_for_status()
             candidate_ids = [
-                result.get("title")
-                for result in fallback.json().get("query", {}).get("search", [])
+                result.get("title") for result in fallback.get("query", {}).get("search", [])
             ]
         for qid in candidate_ids:
             if not qid:
@@ -82,19 +143,59 @@ class WikidataClient:
             instance_ids = {
                 value["value"]["id"]
                 for value in claim_values(entity, "P31")
-                if value.get("type") == "wikibase-entityid"
-                and "id" in value.get("value", {})
+                if value.get("type") == "wikibase-entityid" and "id" in value.get("value", {})
             }
             if "Q5" in instance_ids:
                 return qid, entity
         raise LookupError(f"Aucune personnalité trouvée pour « {name} » dans Wikidata.")
 
+    async def search_people(self, name: str) -> list[PersonCandidate]:
+        data = await self._request_json(
+            API_URL,
+            {
+                "action": "wbsearchentities",
+                "search": name,
+                "language": "fr",
+                "uselang": "fr",
+                "type": "item",
+                "limit": "8",
+                "format": "json",
+                "origin": "*",
+            },
+            ttl=1800,
+        )
+        candidates: list[PersonCandidate] = []
+        normalized_name = name.casefold()
+        for result in data.get("search", []):
+            qid = result.get("id")
+            if not qid:
+                continue
+            entity = await self.get_entity(qid)
+            instance_ids = {
+                value["value"]["id"]
+                for value in claim_values(entity, "P31")
+                if value.get("type") == "wikibase-entityid" and "id" in value.get("value", {})
+            }
+            if "Q5" not in instance_ids:
+                continue
+            label = localized_value(entity.get("labels", {}))
+            score = SequenceMatcher(None, normalized_name, label.casefold()).ratio()
+            candidates.append(
+                PersonCandidate(
+                    qid=qid,
+                    name=label,
+                    description=localized_value(entity.get("descriptions", {})),
+                    score=round(score, 3),
+                )
+            )
+        return sorted(candidates, key=lambda candidate: candidate.score, reverse=True)
+
     async def get_labels(self, qids: set[str], language: str = "fr") -> dict[str, str]:
         if not qids:
             return {}
-        response = await self.client.get(
+        data = await self._request_json(
             API_URL,
-            params={
+            {
                 "action": "wbgetentities",
                 "ids": "|".join(sorted(qids)),
                 "props": "labels",
@@ -102,19 +203,25 @@ class WikidataClient:
                 "format": "json",
                 "origin": "*",
             },
+            ttl=3600,
         )
-        response.raise_for_status()
         labels: dict[str, str] = {}
-        for qid, entity in response.json().get("entities", {}).items():
+        for qid, entity in data.get("entities", {}).items():
             available = entity.get("labels", {})
             label = available.get(language) or available.get("en")
             labels[qid] = label["value"] if label else qid
         return labels
 
     async def search_property(self, query: str) -> tuple[str, str]:
-        response = await self.client.get(
+        results = await self.search_properties(query)
+        if not results:
+            raise ValueError(f"La propriété « {query} » n'a pas été trouvée dans Wikidata.")
+        return results[0]
+
+    async def search_properties(self, query: str) -> list[tuple[str, str]]:
+        data = await self._request_json(
             API_URL,
-            params={
+            {
                 "action": "wbsearchentities",
                 "search": query,
                 "language": "fr",
@@ -124,21 +231,22 @@ class WikidataClient:
                 "format": "json",
                 "origin": "*",
             },
+            ttl=3600,
         )
-        response.raise_for_status()
-        results = response.json().get("search", [])
-        if not results:
-            raise ValueError(f"La propriété « {query} » n'a pas été trouvée dans Wikidata.")
-        result = results[0]
-        return result["id"], result.get("label") or query
+        results = data.get("search", [])
+        return [
+            (result["id"], result.get("label") or query)
+            for result in results
+            if result.get("id", "").startswith("P")
+        ]
 
     async def get_wikipedia_summary(self, entity: dict[str, Any]) -> str | None:
         title = entity.get("sitelinks", {}).get("frwiki", {}).get("title")
         if not title:
             return None
-        response = await self.client.get(
+        data = await self._request_json(
             WIKIPEDIA_API_URL,
-            params={
+            {
                 "action": "query",
                 "prop": "extracts",
                 "exintro": "1",
@@ -148,9 +256,9 @@ class WikidataClient:
                 "format": "json",
                 "origin": "*",
             },
+            ttl=3600,
         )
-        response.raise_for_status()
-        pages = response.json().get("query", {}).get("pages", {})
+        pages = data.get("query", {}).get("pages", {})
         if not pages:
             return None
         extract = next(iter(pages.values())).get("extract", "").strip()
@@ -178,8 +286,25 @@ async def format_claims(
     client: WikidataClient,
     entity: dict[str, Any],
     property_id: str,
+    *,
+    current_only: bool = False,
 ) -> list[str]:
-    raw_values = claim_values(entity, property_id)
+    statements = entity.get("claims", {}).get(property_id, [])
+    if current_only:
+        statements = [
+            statement for statement in statements if "P582" not in statement.get("qualifiers", {})
+        ]
+    statements = sorted(
+        statements,
+        key=lambda statement: statement.get("rank") == "preferred",
+        reverse=True,
+    )
+    raw_values = [
+        datavalue
+        for statement in statements
+        if statement.get("rank") != "deprecated"
+        if (datavalue := statement.get("mainsnak", {}).get("datavalue"))
+    ]
     entity_ids = {
         value["value"]["id"]
         for value in raw_values
