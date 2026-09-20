@@ -30,6 +30,12 @@ def test_context_question() -> None:
     assert plan.person_names == ["__context__"]
 
 
+def test_context_question_with_plain_pronoun() -> None:
+    plan = analyze_question("Elle a combien d'enfants ?", has_context=True)
+    assert plan.action is Action.COUNT
+    assert plan.person_names == ["__context__"]
+
+
 def test_extract_two_people() -> None:
     names = extract_person_names("Compare Marie Curie et Albert Einstein")
     assert names == ["Marie Curie", "Albert Einstein"]

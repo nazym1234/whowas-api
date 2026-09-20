@@ -143,6 +143,12 @@ def test_context_qid_answer() -> None:
     assert result.person.qid == "Q1"
 
 
+def test_context_qid_with_plain_pronoun() -> None:
+    result = run_answer("Elle a combien d'enfants ?", context_qid="Q1")
+    assert result.person.qid == "Q1"
+    assert result.action is Action.COUNT
+
+
 def test_verification_answer() -> None:
     result = run_answer("Marie Curie est-elle australienne ?")
     assert result.action is Action.VERIFY
