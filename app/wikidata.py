@@ -5,9 +5,8 @@ from typing import Any
 
 import httpx
 
-ENTITY_URL = "https://www.wikidata.org/wiki/Special:EntityData/{qid}.json"
 API_URL = "https://www.wikidata.org/w/api.php"
-USER_AGENT = "WhoWas/1.0 (educational project; contact via GitHub)"
+USER_AGENT = "WhoWas/1.0 (https://github.com/nazym1234/whowas-api)"
 
 
 class WikidataClient:
@@ -22,9 +21,18 @@ class WikidataClient:
         await self.client.aclose()
 
     async def get_entity(self, qid: str) -> dict[str, Any]:
-        response = await self.client.get(ENTITY_URL.format(qid=qid))
-        if response.status_code == 404:
-            raise LookupError(f"La personne {qid} n'existe pas dans Wikidata.")
+        response = await self.client.get(
+            API_URL,
+            params={
+                "action": "wbgetentities",
+                "ids": qid,
+                "props": "labels|descriptions|claims",
+                "languages": "fr|en",
+                "languagefallback": "1",
+                "format": "json",
+                "origin": "*",
+            },
+        )
         response.raise_for_status()
         entities = response.json().get("entities", {})
         entity = entities.get(qid)
