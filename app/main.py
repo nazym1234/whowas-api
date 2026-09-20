@@ -1,0 +1,72 @@
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
+
+from app.intents import RULES
+from app.models import AnswerResponse, Person, QuestionRequest
+from app.service import PEOPLE, answer_question
+from app.wikidata import WikidataClient
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    app.state.wikidata = WikidataClient()
+    yield
+    await app.state.wikidata.close()
+
+
+app = FastAPI(
+    title="WhoWas API",
+    description="Questions biographiques simples fondées sur Wikidata.",
+    version="1.0.0",
+    lifespan=lifespan,
+)
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
+
+
+@app.get("/", include_in_schema=False)
+async def home() -> FileResponse:
+    return FileResponse("app/static/index.html")
+
+
+@app.get("/health")
+async def health() -> dict[str, str]:
+    return {"status": "ok"}
+
+
+@app.get("/people", response_model=list[Person])
+async def list_people() -> tuple[Person, ...]:
+    return PEOPLE
+
+
+@app.get("/intents")
+async def list_intents() -> list[dict[str, object]]:
+    return [
+        {
+            "name": rule.intent,
+            "wikidata_property": rule.property_id,
+            "label": rule.property_label,
+        }
+        for rule in RULES
+    ]
+
+
+@app.post("/answer", response_model=AnswerResponse)
+async def answer(payload: QuestionRequest, request: Request) -> AnswerResponse:
+    allowed_qids = {person.qid for person in PEOPLE}
+    if payload.person_qid not in allowed_qids:
+        raise HTTPException(
+            status_code=400, detail="Sélectionnez une personne proposée par /people."
+        )
+    try:
+        return await answer_question(
+            request.app.state.wikidata,
+            payload.person_qid,
+            payload.question,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
